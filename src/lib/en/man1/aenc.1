@@ -1,0 +1,181 @@
+'\" tp
+.\"	aegis - project change supervisor
+.\"	Copyright (C) 1991-1996, 1998, 1999, 2001, 2002, 2005-2008 Peter Miller
+.\"
+.\"	This program is free software; you can redistribute it and/or modify
+.\"	it under the terms of the GNU General Public License as published by
+.\"	the Free Software Foundation; either version 3 of the License, or
+.\"	(at your option) any later version.
+.\"
+.\"	This program is distributed in the hope that it will be useful,
+.\"	but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\"	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\"	GNU General Public License for more details.
+.\"
+.\"	You should have received a copy of the GNU General Public License
+.\"	along with this program. If not, see
+.\"	<http://www.gnu.org/licenses/>.
+.\"
+.so z_name.so
+.TH "\*(n) -New_Change" 1 \*(N) "Reference Manual"
+.SH NAME
+\*(n) -New_Change \- add a new change to a project
+.XX "aenc(1)" "add a new change to a project"
+.SH SYNOPSIS
+.B \*(n)
+.B -New_Change
+[
+.I number
+]
+.B -File
+.I attr-file
+[
+.IR option ...
+]
+.br
+.B \*(n)
+.B -New_Change
+[
+.I number
+]
+.B -Edit
+[
+.IR option ...
+]
+.br
+.B \*(n)
+.B -New_Change
+.B -List
+[
+.IR option ...
+]
+.br
+.B \*(n)
+.B -New_Change
+.B -Help
+.SH DESCRIPTION
+The
+.I \*(n)
+.I -New_Change
+command is used to
+add a new change to a project.
+See
+.IR aecattr (5)
+for information on the format of the
+.IR attr-file .
+.PP
+The change is created in the
+.I "awaiting development"
+state.
+The change is not assigned to any user.
+The change has no development directory.
+.\" ------------------------------------------------------------------------
+.PS c
+boxwid = 1
+down
+S0: arrow " new" ljust " change" ljust
+S1: box "awaiting" "development"
+arrow " develop" ljust " begin" ljust
+S2: box "being" "developed"
+spline -> from 1/3<S1.nw,S1.sw> then left 0.75 then up 2/3 "new" "change" "undo"
+T1: spline -> from S2.w then left 0.75 then up 11/12 \
+	then to 1/3<S1.sw,S1.nw>
+" develop" ljust " begin" ljust " undo" ljust at T1.c - (0.75,0)
+.PE
+.\" ------------------------------------------------------------------------
+.PP
+You may choose your own change number if you want,
+provided that it has not been used already.
+If you do not specify a change number,
+\*(n) will allocate the lowest unused change number.
+The first few change numbers are reserved for
+branches later in the project,
+and so automatically allocated change
+numbers will usually not start from 1.
+See
+.IR aepa (1)
+and
+.IR aepattr (5)
+for more information.
+.PP
+You \fBmust\fP give the \fB\-Project\fP option, see below.
+.SS Notification
+This is one of the rare "state transitions" which does not have a
+notification command.  The assumption is this command is invoked by the
+system which usually receives notifications.
+.SH OPTIONS
+The following options are understood:
+.so o_edit.so
+.so o_file.so
+.so o_help.so
+.so o_list.so
+.TP 8n
+\fB\-Output\fP \fIfilename\fP
+This option may be used to specify a filename which is to be written with
+the automatically determined change number.  Useful for writing scripts.
+.TP 8n
+\fB-Project\fP \fIname\fP
+.RS
+This option is used to select the project for the new change.
+.PP
+You \fBmust\fP supply the \fB\-Project\fP option to this command.
+Experience has shown that when a site has a number of active projects
+or several active branches on a project, new changes are frequently
+created against the wrong project or the wrong branch.  Making the
+project explicit reduces this problem.
+.RE
+.so o_reason2.so
+.so o_terse.so
+.so o_verbose.so
+.so o_wait.so
+.so o__rules.so
+.SH RECOMMENDED ALIAS
+The recommended alias for this command is
+.nf
+.ta 8n 16n
+csh%	alias aenc '\*(n) -nc \e!* -v'
+sh$	aenc(){\*(n) -nc "$@" -v}
+.fi
+.SH ERRORS
+It is an error if
+the current user is not an administrator of the project.
+(In some cases it is possible for developers of a project to create
+changes,
+see
+.IR aepattr (5)
+for more information.)
+.so z_exit.so
+.br
+.ne 1i
+.SH SEE ALSO
+.TP 8n
+.IR tkaenc (1)
+GUI interface to the \fIaenc\fP(1) command.
+.TP 8n
+.IR aeca (1)
+modify the attributes of a change
+.TP 8n
+.IR aedb (1)
+begin development of a change
+.TP 8n
+.IR aena (1)
+add a new administrator to a project
+.TP 8n
+.IR aencu (1)
+remove a new change from a project
+.TP 8n
+.IR aenpr (1)
+create a new project
+.TP 8n
+.IR aepa (1)
+modify the attributes of a project
+.TP 8n
+.IR aecattr (5)
+change attributes file format
+.TP 8n
+.IR aepattr (5)
+project attributes file format
+.TP 8n
+.IR aeuconf (5)
+user configuration file format
+.so z_cr.so

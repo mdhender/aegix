@@ -1,0 +1,325 @@
+/*
+ *	aegis - project change supervisor
+ *	Copyright (C) 1991-2008 Peter Miller
+ *
+ *	This program is free software; you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License as published by
+ *	the Free Software Foundation; either version 3 of the License, or
+ *	(at your option) any later version.
+ *
+ *	This program is distributed in the hope that it will be useful,
+ *	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU General Public License for more details.
+ *
+ *	You should have received a copy of the GNU General Public License
+ *	along with this program. If not, see
+ *	<http://www.gnu.org/licenses/>.
+ *
+ * If you add a new project attribute, you must edit all of these files...
+ *	aegis/aenpr.cc		Where it is defaulted (if not zero)
+ *	aegis/aenrls.cc		Where it is defaulted (if not zero)
+ *	libaegis/change/branch/*.cc	Where it is set&get
+ *	libaegis/change/branch.h	Where it is in a prototype
+ *	libaegis/change/cstate/improve.cc	Where it is defaulted
+ *	libaegis/cstate.def	Where it is defined
+ *	libaegis/pattr.def	Where it is defined
+ *	libaegis/project/*.cc	Where it is set&get
+ *	libaegis/project.h	Where it is in a prototype
+ *	libaegis/project/new_branch.cc	Where it is copied
+ *	libaegis/project/pattr/get.cc	Where it is copied
+ *	libaegis/project/pattr/set.cc	Where it is copied
+ *	lib/en/man5/aecstate.5	Where it is documented
+ *	lib/en/man5/aepattr.5	Where it is documented
+ *	lib/wish/proj_attr.rpt	Where it is read
+ *	script/tkaepa.in	Where it is edited.
+ * You will also have to fix a whole bunch of tests.
+ */
+
+#include <libaegis/common.def>
+
+/*
+ * This field contains
+ * a description of the project.
+ * Large amounts of prose are not required;
+ * a single line is sufficient.
+ */
+description = string;
+
+/*
+ * If this field is true, then a developer may review her own change.
+ * This is probably only a good idea for projects of less than 3 people.
+ * The idea is for as many people as possible to critically examine a change.
+ */
+developer_may_review = boolean;
+
+/*
+ * If this field is true, then a developer may integrate her own change.
+ * This is probably only a good idea for projects of less than 3 people.
+ * The idea is for as many people as possible to critically examine a change.
+ */
+developer_may_integrate = boolean;
+
+/*
+ * If this field is true, then a reviewer may integrate a change she reviewed.
+ * This is probably only a good idea for projects of less than 3 people.
+ * The idea is for as many people as possible to critically examine a change.
+ */
+reviewer_may_integrate = boolean;
+
+/*
+ * This field is true if developers may created changes,
+ * in addition to administrators.
+ * This tends to be a very useful thing,
+ * since developers find most of the bugs.
+ */
+developers_may_create_changes = boolean;
+
+/*
+ * This command is used to notify a developer that a change requires
+ * developing; it is issued when a project administrator uses an 'aedb
+ * -User' command to force development of a change by a specific user.
+ * All of the substitutions described in aesub(5) are available.  This
+ * field is optional.
+ *
+ * Executed as: the new developer.
+ * Current directory: the development directory of the change
+ *	for the new developer.
+ * Exit status: ignored.
+ */
+forced_develop_begin_notify_command = string;
+
+/*
+ * notify that a change requires reviewing
+ * All of the substitutions described in aesub(5) are available.
+ * this field is optional
+ *
+ * This command could also be used to notify other management systems,
+ * such as progress and defect tracking.
+ *
+ * Executed as: the developer.
+ * Current directory: the development directory of the change.
+ * Exit status: ignored.
+ */
+develop_end_notify_command = string;
+
+/*
+ * notify that a change has been withdrawn from review
+ * for further development
+ * All of the substitutions described in aesub(5) are available.
+ * this field is optional
+ *
+ * This command could also be used to notify other management systems,
+ * such as progress and defect tracking.
+ *
+ * Executed as: the developer.
+ * Current directory: the development directory of the change.
+ * Exit status: ignored.
+ */
+develop_end_undo_notify_command = string;
+
+/*
+ * notify that the review has begun
+ * All of the substitutions described in aesub(5) are available.
+ * this field is optional
+ *
+ * This command could also be used to notify other management systems,
+ * such as progress and defect tracking.
+ *
+ * Executed as: the reviewer.
+ * Current directory: the development directory of the change.
+ * Exit status: ignored.
+ */
+review_begin_notify_command = string;
+
+/*
+ * notify that the review has no longer begun
+ * All of the substitutions described in aesub(5) are available.
+ * this field is optional
+ *
+ * This command could also be used to notify other management systems,
+ * such as progress and defect tracking.
+ *
+ * Executed as: the reviewer.
+ * Current directory: the development directory of the change.
+ * Exit status: ignored.
+ */
+review_begin_undo_notify_command = string;
+
+/*
+ * notify that the review has passed
+ * All of the substitutions described in aesub(5) are available.
+ * this field is optional
+ *
+ * This command could also be used to notify other management systems,
+ * such as progress and defect tracking.
+ *
+ * Executed as: the reviewer.
+ * Current directory: the development directory of the change.
+ * Exit status: ignored.
+ */
+review_pass_notify_command = string;
+
+/*
+ * notify that a review pass has has been rescinded
+ * All of the substitutions described in aesub(5) are available.
+ * this field is optional.
+ * Defaults to the develop_end_notify_command field.
+ *
+ * This command could also be used to notify other management systems,
+ * such as progress and defect tracking.
+ *
+ * Executed as: the reviewer.
+ * Current directory: the development directory of the change.
+ * Exit status: ignored.
+ */
+review_pass_undo_notify_command = string;
+
+/*
+ * notify that the review has failed
+ * All of the substitutions described in aesub(5) are available.
+ * this field is optional
+ *
+ * This command could also be used to notify other management systems,
+ * such as progress and defect tracking.
+ *
+ * Executed as: the reviewer.
+ * Current directory: the development directory of the change.
+ * Exit status: ignored.
+ */
+review_fail_notify_command = string;
+
+/*
+ * notify that the integration has passed
+ * All of the substitutions described in aesub(5) are available.
+ * this field is optional
+ *
+ * This command could also be used to notify other management systems,
+ * such as progress and defect tracking.
+ *
+ * Executed as: the project owner.
+ * Current directory: the new project baseline.
+ * Exit status: ignored.
+ */
+integrate_pass_notify_command = string;
+
+/*
+ * notify that the integration has failed
+ * All of the substitutions described in aesub(5) are available.
+ * this field is optional
+ *
+ * This command could also be used to notify other management systems,
+ * such as progress and defect tracking.
+ *
+ * Executed as: the integrator.
+ * Current directory: the development directory of the change.
+ * Exit status: ignored.
+ */
+integrate_fail_notify_command = string;
+
+/*
+ * The pathname of where to place new development directories.
+ * The pathname must be absolute.
+ * Only consulted if the uconf field of the same name is not set.
+ * Defaults to $HOME.
+ */
+default_development_directory = string;
+
+/*
+ * File permission mode mask.  See umask(2) for more information.
+ * This value will always be OR'ed with 022, because aegis is paranoid.
+ */
+umask = integer;
+
+/*
+ * This field contains what to do when a change is created with
+ * no test exemption specified.
+ */
+default_test_exemption = boolean;
+
+/*
+ * This field contains what to do when a change is created with no
+ * regression test exemption specified.  Defaults to true if not set.
+ */
+default_test_regression_exemption = boolean;
+
+/*
+ * This field contains a list of copyright years, for use in copyright
+ * notices, etc.  It is updated each integrate_begin, if necessary, to
+ * include the current year.  Available as the ${Copyright_Years}
+ * substitution, and included in the version listing.
+ */
+copyright_years = [ integer ];
+
+/*
+ * The minimum change number for aenc, if no change number is specified.
+ * This allows the low-numbered change numbers to be used for branches
+ * later in the project.  Defaults to 10 if not set, may not be less
+ * than 1.
+ */
+minimum_change_number = integer;
+
+/*
+ * This attribute is used to control the reuse of change numbers to fill
+ * in gaps caused by using aencu.  Defaults to true if not set.
+ */
+reuse_change_numbers = boolean;
+
+/*
+ * The minimum branch number for aenbr, if no branch number is specified.
+ * Defaults to 1 if not set.
+ */
+minimum_branch_number = integer;
+
+/*
+ * This field may be set to true if you want to skip various unlucky
+ * numbers for changes, branches and tests.  Various traditions are
+ * avoided, both Eastern and Western.  Defaults to false if not set.
+ */
+skip_unlucky = boolean;
+
+/*
+ * This field may be set to true if you want to compress the database
+ * on writing.  (It is always uncompressed on reading if necessary.)
+ */
+compress_database = boolean;
+
+/*
+ * This field controls the state entered on a successfil develop end
+ * state transition.  The default is "being reviewed".
+ *
+ * goto_being_reviewed
+ *	This means that the state machine goes from the being_developed
+ *	state to the being_reviewed state.  The aerb command only sends
+ *	informative email.
+ *
+ * goto_awaiting_review
+ *	This means that the state machine goes from the being_developed
+ *	state to the awaiting_review state.  The aerb command is now
+ *	essential.
+ *
+ * goto_awaiting_integration
+ *	This means that the state machine goes from the being_developed
+ *	state into the awaiting_inmtegartion state.  Code review is
+ *	skipped entirely.
+ *
+ * Note that the "developer_may_review" setting may not contradict the
+ * "develop_end_action".  If developers may not review their own work,
+ * then you may not goto directly to being integrated (as this means
+ * much te same thing).
+ */
+develop_end_action = (goto_being_reviewed, goto_awaiting_review,
+	goto_awaiting_integration);
+
+/*
+ * This field may be used to protect the development directory after
+ * the "being developed" state.  It does this by making it read-only at
+ * develop end time.  Should the change ever be returned to the "being
+ * developed" state, it will be made writble again.
+ *
+ * The default is false, meaning to leave the development directory
+ * writable while is being reviewed and integrated.  Aegis' normal
+ * tampering detection will notice if files are changed, but there is
+ * no reminder to the developer that the change should be left alone.
+ */
+protect_development_directory = boolean;

@@ -1,0 +1,351 @@
+'\" t
+.\"	aegis - project change supervisor
+.\"	Copyright (C) 1993-1997, 1999, 2001-2004, 2006-2008 Peter Miller
+.\"
+.\"	This program is free software; you can redistribute it and/or modify
+.\"	it under the terms of the GNU General Public License as published by
+.\"	the Free Software Foundation; either version 3 of the License, or
+.\"	(at your option) any later version.
+.\"
+.\"	This program is distributed in the hope that it will be useful,
+.\"	but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\"	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\"	GNU General Public License for more details.
+.\"
+.\"	You should have received a copy of the GNU General Public License
+.\"	along with this program. If not, see
+.\"	<http://www.gnu.org/licenses/>.
+.\"
+.so z_name.so
+.TH aefstate 5 \*(N) "Reference Manual"
+.SH NAME
+aefstate \- \*(n) file state file
+.XX "aefstate(5)" "file state file format"
+.SH SYNOPSIS
+\fIproject\fP\f(CW/info/change/\fP\fI[0-9]\fP\f(CW/\fP\fI[0-9][0-9][0-9]\fP.fs
+.SH DESCRIPTION
+A file state file is used to store information about
+the files in a transaction.
+These files are created and maintained by \*(n).
+These files should not be edited by humans.
+These files is owned by the project owner and group.
+.SH CONTENTS
+.TP 8n
+src = [ { ... }, ... ];
+.br
+This field is a list of all the files in the change.
+The records have the form
+.RS 8n
+.TP 8n
+file_name = string;
+.br
+This file names the file.
+The name is relative to the root of the baseline directory tree.
+.TP 8n
+uuid = string;
+.br
+This field uniquely identifies the file for its entire lifetime.  This
+field remains constant across file renames.  The value of this field
+shall be formatted as a valid UUID, all in lower case.
+.TP 8n
+action = (create, modify, remove, insulate, transparent);
+.RS
+This field describes what is being done with the file.
+.TP 8n
+create
+The file is being created.
+Once integrated, the edit fields record the file version created and
+stored in the history.
+.TP 8n
+modify
+The file is being created.
+Once integrated, the edit fields record the file version
+stored in the history.
+.TP 8n
+remove
+The file is being created.
+The edit field is only informational, and describes the file version at
+the time it was removed from the repository.
+.TP 8n
+insulate
+The file is insulating a development directory from changes to the
+baseline, it shall be uncopied before development may end.
+This action shall only be present in changes.
+It shall never  be present in branch change state files.
+.TP 8n
+transparent
+The file wasonce present in the branch, however it is desired that the
+ancestor version "show through".  This is the equivalent of "uncopy"
+for branches.  When the branch is integrated, this file will be omitted.
+.RE
+.TP 8n
+edit = { ... };
+.RS
+For a project or an active branch, this field records the
+head revision of the file.
+For a completed change or branch, this field records
+the revision number after integrate pass.
+.TP 8n
+revision = string;
+This is the edit number, as reported by the \fIhistory_\%get_\%command\fP
+in the project \fIconfig\fP file at integrate pass time.
+.TP 8n
+encoding = (none, quoted_printable, base64);
+.RS
+This field records the encoding used when the file was added to
+the history at integrate pass time, as configured by one of the
+\fIhistory_\%put_\%command\fP or \fIhistory_\%get_\%command\fP
+and \fIhistory_\%content_\%limitation\fP fields
+of the project \fIconfig\fP file.
+.TP 8n
+none
+No encoding was applied to the file.  Either it had no binary characters,
+or the history tool is able to cope with binary files.
+.TP 8n
+quoted_printable
+The MIME Quoted Printable encoding (see RFC 1521) has been used to
+escape the binary characters of the file content.
+.TP 8n
+base64
+The MIME Base 64 encoding (see RFC 1521) has been used to encode the
+file content.
+.PP
+The \fIhistory_content_limitation\fP field of the project \fIconfig\fP
+file is used to determine which files need encoding.  The size of the
+encoded file is compared to determine which of quoted printable and base
+64 encodings is used; the smaller is chosen.
+.RE
+.RE
+.TP 8n
+edit_number = string;
+.br
+This field is obsolescent.  It is only present for backwards
+compatibility.  It has been replaced by the \fIedit\fP field.
+.TP 8n
+edit_origin = { ... };
+.RS
+This field records the edit number of the file
+when it was added to the change or branch.
+In changes, this field is not present for new files.
+(A change file is out of date if it's edit number_origin field does not equal
+the edit_number field in the project.)
+.PP
+It has the same fields, with the same meaning, as the \fIedit\fP field, above.
+.RE
+.TP 8n
+edit_number_origin = string;
+.RS
+This field is obsolescent.  It is only present for backwards
+compatibility.  It has been replaced by the \fIedit_origin\fP field.
+.RE
+.TP 8n
+edit_origin_new = { ... };
+.RS
+This field records the edit number of the file
+to replace the edit_number_origin field in the branch at integrate pass time.
+This is used to perform cross branch merging.
+This field cleared at integrate pass time.
+.PP
+It has the same fields, with the same meaning, as the \fIedit\fP field, above.
+.RE
+.TP 8n
+edit_number_origin_new = string;
+.RS
+This field is obsolescent.  It is only present for backwards
+compatibility.  It has been replaced by the \fIedit_origin_new\fP field.
+.RE
+.TP 8n
+usage = (source, config, build, test, manual_test);
+.br
+This field describes what function the file serves.
+.TP 8n
+file_fp = fingerprint;
+.RS
+This field records the last time modified of the source file.
+It is only present between the
+.I being_developed
+and
+.I being_integrated
+states,
+inclusive (for both changes and branches).
+It is not present for files which are being deleted.
+This field is used to determine if a difference has been done,
+or a test has been done if the source file is a test,
+and if the file has been tampered with before state transitions.
+.PP
+The fingerprint consists of the following fields:
+.TP 8n
+youngest = time;
+.br
+The youngest time see for this file with this fingerprint.
+.TP 8n
+oldest = time;
+.br
+The oldest time see for this file with this fingerprint.
+.TP 8n
+crypto = string;
+.br
+This field records a cryptographically strong fingerprint for the file.
+There is no known method of constructing a file to match a given
+fingerprint, and there is less than 1 in 2**200 chance that two files
+will have the same fingerprint.  Thus if the fingerprint is the same,
+the file can reliably assumed to be the same.
+.RE
+.TP 8n
+diff_file_fp = fingerprint;
+.br
+This field records the last time modified of the difference file
+when the last
+.I "\*(n) -DIFFerence"
+command was run.
+It is only present between the
+.I being_developed
+and
+.I being_integrated
+states,
+inclusive (for both changes and branches).
+This field is used to determine if a difference has been done,
+and if the difference file has been tampered with before state transitions.
+.TP 8n
+idiff_file_fp = fingerprint;
+.br
+This field records the last time modified of the integration difference file
+when the last
+.I "\*(n) -DIFFerence"
+command was run.
+It is only present in the
+.I being_integrated
+state.
+This field is used to determine if a difference has been done.
+.TP 8n
+architecture_times = [{ ... }];
+.RS
+This field records the time of various operations
+for each variant named in the
+.I architecture
+field.
+It is only present in the
+.I being_developed
+and
+.I being_integrated
+states.
+This field is used to determine if a test has been done,
+and thus optimize test runs.
+.TP 8n
+variant = string;
+.br
+This field is one of the patterns named in the
+.I architecture
+field.
+.TP 8n
+test_time = time;
+.br
+This field records the last time the last successful
+.I "\*(n) -Test"
+command was run for this specific pattern instance.
+.TP 8n
+test_baseline_time = time;
+.br
+This field records the last time the last successful
+.I "\*(n) -Test -BaseLine"
+command was run for this specific pattern instance.
+.RE
+.TP 8n
+move = string;
+.br
+To change the name of a file,
+a combination of deleting the old name and creating the new name is used.
+With deleted files, this field is used to say where it went.
+With new files, this field is used to say where it came from.
+.TP 8n
+locked_by = integer;
+The change which locked this file.
+.br
+Caveat: this field is redundant,
+you can figure it out by scanning all of he change files.
+Having it here is very convenient,
+even though it means multiple updates.
+.TP 8n
+about_to_be_created_by = integer;
+The change which is about to create this file for the first time.
+Same caveat as above.
+.TP 8n
+about_to_be_copied_by = integer;
+For each change file that is acting on a project file from a deeper baseline
+than the immediate parent project's baseline,
+the file needs to be added to the immediate parent project.
+Note that this field says that this file record is a place marker,
+so that it can be deleted again should the change not be integrated
+for some reason.
+.TP 8n
+deleted_by = integer;
+The change which last deleted this file.
+We never throw them away, because
+(a) it may be created again, and more important
+(b) we need it to recreate earlier deltas.
+.RE
+.TP 8n
+test = [ string ];
+This field is used to remember test correlations for source files.
+This is used by
+.IR aet (1)
+to suggest suitable tests.
+.so aemetrics.so
+.TP 8n
+executable = boolean;
+.RS
+This field is used to remember whether the source file had any executable
+permission bits set at \fIdevelop end\fP time.  This mode will be restored
+(taking the project umask into account) when the file is copied.
+.PP
+This field is only meaningful for changes in the \fIcompleted\fP state,
+because this field is only set by \fIaeip\fP(1).  Until then, the mode
+if the file itself is the authority.
+.RE
+.TP 8n
+attribute = [ { ... } ];
+.RS
+This is a list of \fI(name,value)\fP pairs, defining user specified attributes.
+.TP 8n
+name = string;
+.RS
+The name of the attribute.
+By convention, names which start with an upper-case letter will appear
+in listings, and lower-case will not.
+Attribute names are case-insensitive.
+.RE
+.TP 8n
+value = string;
+The value of the attribute.
+.PP
+Arguably, most file properties which may be altered by the user (and
+some that can't) should be of this form.  Due to an accident of history,
+this is not the case.
+.RE
+.SH WRITING REPORT SCRIPTS
+When attempting to access these fields from within the report generator,
+you need a code fragment similar to the following:
+.RS
+.nf
+.ft CW
+auto ps, pfs;
+ps = project[project_name()].state;
+fps = ps.src["somefile"];
+.sp 0.5
+auto cs, cfs;
+cs = ps.branch.change[change_number()];
+cfs = cs.src["somefile"];
+.ft R
+.fi
+.RE
+Notice that the top-level fields of the file state are not available,
+but instead are mapped onto the relevant project file and change file
+\fIsrc\fP arrays.
+.PP
+All of the src member fields mentioned in the man page can now be accessed
+as members of the \f[CW]pfs\fP or \f[CW]cfs\fP variables.
+.SH SEE ALSO
+.TP 8n
+.IR aegis (5)
+\*(n) file format syntax
+.so ../man1/z_cr.so

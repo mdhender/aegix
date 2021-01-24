@@ -1,0 +1,241 @@
+'\" t
+.\"	aegis - project change supervisor
+.\"	Copyright (C) 1991-1993, 1996, 1998-2000, 2002-2008 Peter Miller
+.\"
+.\"	This program is free software; you can redistribute it and/or modify
+.\"	it under the terms of the GNU General Public License as published by
+.\"	the Free Software Foundation; either version 3 of the License, or
+.\"	(at your option) any later version.
+.\"
+.\"	This program is distributed in the hope that it will be useful,
+.\"	but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\"	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\"	GNU General Public License for more details.
+.\"
+.\"	You should have received a copy of the GNU General Public License
+.\"	along with this program. If not, see
+.\"	<http://www.gnu.org/licenses/>.
+.\"
+.so z_name.so
+.TH "\*(n) -New_File" 1 \*(N) "Reference Manual"
+.SH NAME
+\*(n) -New_File \- add new files to be created by a change
+.XX "aenf(1)" "add new files to be created by a change"
+.SH SYNOPSIS
+.B \*(n)
+.B -New_File
+.IR file-name ...
+[
+.IR option ...
+]
+.br
+.B \*(n)
+.B -New_File
+.B -List
+[
+.IR option ...
+]
+.br
+.B \*(n)
+.B -New_File
+.B -Help
+.SH DESCRIPTION
+The
+.I \*(n)
+.I -New_File
+command is used to
+add new files to a change.
+The named files will be
+added to the list of files in the change.
+.PP
+For each file named,
+a new file is created in the development directory,
+if it does not exist already.
+If the file already exists,
+it will not be altered.
+.PP
+If you want a new source file to be executable (shell scripts, for
+example) then you simply use the normal \fIchmod\fP(1) command.  If any
+of the file's executable bits are set at \fIaede\fP(1) time the file is
+remembered as executable and all execute bits (minus the project's umask)
+will be set by subsequent \fIaecp\fP(1) commands.
+.PP
+If you name a directory on the command line, the entire directory tree
+will be searched for new files.  (Note: absolutely everything will be added,
+including dot files and binary files, so you will need to clean out any
+junk first.)
+Files below this named directory which are already in the change, or in
+the project, will be ignored.
+The \f[I]file_name_accept\fP and \f[I]file_name_reject\fP patterns
+in the project \f[I]aegis.conf\fP file will also be applied, see
+\f[I]aepconf\fP(5) for more information.
+.SS Directory Example
+There are times when a command such as
+.RS
+.ft CW
+.nf
+$ \f[CB]aenf fubar/*\fP
+.fi
+aegis: project "example": change 42: "fubar/glorp" already in change
+.br
+aegis: project "example": change 42: found 1 fatal error, no new files added
+.nf
+$
+.fi
+.ft R
+.RE
+will fail as shown.  There are several ways to deal with this,
+the easiest being to simply name the directory:
+.RS
+.ft CW
+.nf
+$ \f[CB]aenf fubar\fP
+.fi
+aegis: project "example": change 42: file "fubar/smiley" added
+.br
+aegis: project "example": change 42: file "fubar/frownie" added
+.nf
+$
+.fi
+.ft R
+.RE
+You could also use the \f[I]find\fP(1) command for arbitrarily complex
+file selection, but you must first exclude files that the above command
+excludes automatically:
+.RS
+.ft CW
+.nf
+$ \f[CB]aelcf > exclude\fP
+$ \f[CB]aelpf >> exclude\fP
+$ \f[CB]find fubar -type f | \e
+    grep -v -f exclude | \e
+    xargs aegis --new-file -v\fP
+.fi
+aegis: project "example": change 42: file "fubar/smiley" added
+.br
+aegis: project "example": change 42: file "fubar/frownie" added
+.nf
+$
+.fi
+.ft R
+.RE
+If you aren't using the exclude list,
+the \f[I]find\fP(1) command will need fine tuning for your development
+directory style.  If you are using the symlink-style, you will need to
+add the \f[I]find -nlink 1\fP option in addition to the
+\f[I]find -type f\fP option.
+.RS
+.ft CW
+.nf
+$ \f[CB]find fubar -type f -nlinks 1 | \e
+    xargs aegis --new-file -v\fP
+.fi
+aegis: project "example": change 42: file "fubar/smiley" added
+.br
+aegis: project "example": change 42: file "fubar/frownie" added
+.nf
+$
+.fi
+.ft R
+.RE
+If you are using the full-copy development directory style,
+you will have to use the exclude list method, above.
+.so z_template.so
+.so z_filesize.so
+.so z_intuit.so
+.so z_retype.so
+.so z_promotion.so
+.SS Notification
+The \fInew_file_command\fP in the project configuration file is run,
+if set.  The \fIproject_\%file_\%command\fP is also run, if set, and
+if there has been an integration recently.  See \fIaepconf\fP(5) for
+more information.
+.\" unlike the above, z_test_corr.so starts a new section
+.so z_test_corr.so
+.SH OPTIONS
+The following options are understood
+.TP 8n
+.B -Build
+.br
+This option may be used to specify that the file is constructed
+during a build (often only an integrate build),
+so that history of it may be kept.
+This is useful for generating patch files,
+where a history of generated files is important.
+Files created in this way may not be copied into a change,
+though they may be deleted.
+Avoid using files of this type,
+if at all possible.
+.so o_baserel.so
+.so o_change.so
+.TP 8n
+\fB\-CONFIGured\fP
+This option may be used to specify that the file is an Aegis project
+configuration file.  The default project configuration file is called
+\fIaegis.conf\fP, however any file name may be used.  You may also use
+more than one file, splitting the content across several files, all of
+which must be of this type.
+.so o_help.so
+.so o_keep.so
+.so o_list.so
+.so o_nolog.so
+.so o_project.so
+.so o_template.so
+.so o_terse.so
+.so o_verbose.so
+.so o_wait.so
+.so o__rules.so
+.SH RECOMMENDED ALIAS
+The recommended alias for this command is
+.nf
+.ta 8n 16n
+csh%	alias aenf '\*(n) -nf \e!* -v'
+sh$	aenf(){\*(n) -nf "$@" -v}
+.fi
+.SH ERRORS
+It is an error if
+the change is not in the
+.I "being developed"
+state.
+.br
+It is an error if
+the change is not assigned to the current user.
+.br
+It is an error if
+the file is already part of the change.
+.br
+It is an error if
+the file is already part of the baseline.
+.br
+It is an error if the files named on the command line are not normal
+files and not directories.  (If you need symbolic links or special files,
+create them at build time.)
+.so z_exit.so
+.br
+.ne 1i
+.SH SEE ALSO
+.TP 8n
+.IR aecp (1)
+copy files into a change
+.TP 8n
+.IR aedb (1)
+begin development of a change
+.TP 8n
+.IR aemv (1)
+rename a file as part of a change
+.TP 8n
+.IR aenfu (1)
+remove new files from a change
+.TP 8n
+.IR aent (1)
+add new tests to a change
+.TP 8n
+.IR aerm (1)
+add files to be deleted by a change
+.TP 8n
+.IR aepconf (5)
+project configuration file format
+.TP 8n
+.IR aeuconf (5)
+user configuration file format
+.so z_cr.so

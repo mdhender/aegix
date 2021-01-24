@@ -1,0 +1,70 @@
+/*
+ * aegis - project change supervisor
+ * Copyright (C) 1999, 2002-2004, 2006-2008 Peter Miller
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+all += metrics.targets ;
+
+metrics_include_file = etc/proj_metric.so;
+#if 0
+source_file_order += [metrics_include_file] ;
+#endif
+
+/*
+ * These are the files to construct to that Aegis can read them at
+ * integration pass time.
+ */
+metrics.targets =
+        [addsuffix ",S"
+            [stringset [project_files] [change_files] - [metrics_include_file]]
+        ]
+        ;
+metrics.targets: [metrics.targets];
+
+[metrics_include_file]: [metrics.targets] etc/statistics.awk
+{
+        [awk] -f [resolve etc/statistics.awk]
+                `cat -`
+                > [target]
+                ;
+data
+[unsplit "\n" [resolve [metrics.targets]]]
+dataend
+}
+
+#if 0
+#if [find_command sw_measure]
+
+%1/%0%2.cc,S: %1/%0%2.cc
+    set nocascade
+{
+        sw_measure
+                [stringset
+                        -I/usr/lib/gcc-lib/i386-redhat-linux/2.7.2.3/include
+                        [prepost "-I" "/%1" [search_list]]
+                        [cc_include_flags]
+                ]
+                [resolve %1/%0%2.cc] [target];
+}
+
+#endif
+#endif
+
+%0%,S: %0%: [arch]/bin/aemeasure(exists)
+    set nocascade
+{
+    [resolve [arch]/bin/aemeasure] [resolve %0%] [target];
+}

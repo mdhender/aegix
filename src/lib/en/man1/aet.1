@@ -1,0 +1,329 @@
+'\" t
+.\"	aegis - project change supervisor
+.\"	Copyright (C) 1991-1993, 1996-2000, 2002, 2004-2008 Peter Miller
+.\"
+.\"	This program is free software; you can redistribute it and/or modify
+.\"	it under the terms of the GNU General Public License as published by
+.\"	the Free Software Foundation; either version 3 of the License, or
+.\"	(at your option) any later version.
+.\"
+.\"	This program is distributed in the hope that it will be useful,
+.\"	but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\"	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\"	GNU General Public License for more details.
+.\"
+.\"	You should have received a copy of the GNU General Public License
+.\"	along with this program. If not, see
+.\"	<http://www.gnu.org/licenses/>.
+.\"
+.so z_name.so
+.TH "\*(n) -Test" 1 \*(N) "Reference Manual"
+.SH NAME
+\*(n) -Test \- run tests
+.XX "aet(1)" "run tests"
+.SH SYNOPSIS
+.B \*(n)
+.B -Test
+[
+.IR option ...
+][
+\fIname\fP\fB=\fP\fIvalue\fP
+][
+.IR file-name ...
+]
+.br
+.B \*(n)
+.B -Test
+.B -INDependent
+[
+.IR option ...
+][
+\fIname\fP\fB=\fP\fIvalue\fP
+][
+.IR file-name ...
+]
+.br
+.B \*(n)
+.B -Test
+.B -List
+[
+.IR option ...
+]
+.br
+.B \*(n)
+.B -Test
+.B -Help
+.SH DESCRIPTION
+The
+.I \*(n)
+.I -Test
+command is used to
+run tests.
+If no files are named, all relevant tests are run.
+By default both automatic and manual tests are run.
+.PP
+You may name directories on the command line, and all relevant tests in
+that directory tree in the change will be run.
+It is an error if there are no relevant tests.
+.PP
+Each architecture must be tested separately.
+This is because there may be subtle problems that are only
+revealed on some architectures.
+Some projects may also have different code for different architectures.
+.PP
+The status of the last test run is remembered so that tests are not run
+if there is no need.
+(This does not apply to
+.I -REGression
+tests, unfortunately.)
+Tests must be re-run
+if the test previously failed,
+if the test file has changed,
+if there has been a build,
+and for each architecture.
+.SS name=value
+You can add \fIname\fP\fB=\fP\fIvalue\fP pairs to the command line,
+these will be passed unchanged to the test command.
+Usually on the end of the command line, but this can be changed in the
+project configuration file.
+.PP
+The \fB\-force\fP option results in an implicit \f[CW]force=1\fP
+variable being added to the list of variable assignments, and thus
+added to the end of the command.  This is of most use when using the
+\fIbatch_\%test_\%command\fP filed of the project configuration file.
+.PP
+This may initially look like a development process end-run,
+allowing test scripts to be written so that they
+give all the right answers without actually doing anything.
+You have always been able to do this with environment variables,
+so this isn't anything new.
+.PP
+It is possible to get all of the variable assignments to turn into
+environment variables by putting \f[CW]$var\fP at the \fIstart\fP of the
+command, before the name of the shell, rather than at the default
+location at the end of the command.
+.so z_intuit.so
+.so z_test_rtnl.so
+.SH "TEST COMMAND CONFIGURATION"
+.PP
+The command used to execute tests is defined by the
+.I test_command
+field in the project
+configuration
+file (see
+.IR aepconf (5)
+for more information),
+this defaults to using the Bourne shell if not set.
+The current directory will be the top of the appropriate directory tree.
+If tests require temporary files, they should create them in
+.IR /tmp ,
+as a test cannot expect to have write permission
+in the current directory.
+.PP
+If you want to use a more sophisticated test engine, rather than a
+simple shell script, but this test engine does not return result codes
+suitable for use with \*(n), you could wrap it in a shell script which
+re-writes the exit status into the values \*(n) expects.
+You could also achieve the same results by writing a more complex
+.I test_command
+in the project
+.I config
+file.
+.PP
+It is also possible to write test commands which are able to
+test more than one file at once.  This is controlled by the
+\fIbatch_\%test_\%command\fP field of the project \fIconfig\fP file.
+In this case, the ${output} substitution indicates the name of a file
+the test command must create, in \fIaetest\fP(5) format, to contain the
+results of the tests run.  This is often used on systems with multiple
+CPUs or the ability to distribute jobs across several computers on
+a network.
+.SS "Substitutions"
+All of the \fIaesub\fP(5) substitutions are available in the test commands.
+Some of them are of particular note:
+.TP 8n
+.I ARCHitecture
+This substitution is replaced by the name of the architecture to be
+tested.
+.TP 8n
+.I Search_Path
+This substitution is replaced by a colon separated list of absolute
+paths to search when looking for test support files.
+.TP 8n
+.I Search_Path_Executable
+This substitution is replaced by a colon separated list of absolute
+paths to search when looking for executable support files (library files
+and sub-commands).
+.PP
+Most of the time \fI$Search_Path_Executable\fP are exactly the same.
+However, during \[lq]aegis -t -bl\[rq] they will be different, with
+\fI$Seach_Path\fP starting at the development directory (the test
+being run) and \fI$Seach_Path_Executable\fP starting at the baseline
+(the executable being run).
+.SS "Test Result Codes"
+As each test is run
+(via the
+.I test_command
+field in the project
+.I config
+file),
+\*(n) determines whether the test succeeded or failed by looking at its
+exit status.
+This exit status is mostly as expected for UNIX commands.
+.TP 4n
+Success
+A test should exit 0 to indicate success,
+i.e. that the specific function under test worked as expected.
+.TP 4n
+Failure
+A test should exit 1 to indicate failure,
+i.e. that the specific function under test did not work as expected.
+.TP 4n
+No Result
+A test should exit 2 to indicate no result,
+\fIi.e.\fP that the specific function under test could not be exercised
+because something else went wrong.
+For example, running out of disk space when creating the test input
+files in the
+.I /tmp
+directory.
+.TP 4n
+Skipped
+A test should exit 77 to indicate that it was skipped.
+This is usually to do with the current architecture not being meaningful.
+Whenever possible, use \[lq]No Result\[rq] instead.
+(The value was chosen for compatibility with other test systems.)
+.PP
+Actually, any exit code other than 0, 1 or 77 will be interpreted as \[lq]no
+result\[rq].  However, always using 0, 1, 2 or 77 means that if a new result
+code is required by a later release of Aegis your existing tests will
+continue to work.
+.so z_test_corr.so
+.SH OPTIONS
+The following options are understood:
+.so o_auto.so
+.so o_baselin.so
+.so o_baserel.so
+.so o_change.so
+.TP 8n
+.B -FOrce
+This option may be used to specify that all tests should be run,
+even if the status of the last test run indicates that there is no
+need to run a specific test.
+.so o_help.so
+.so o_indep.so
+.so o_list.so
+.so o_manual.so
+.so o_nolog.so
+.TP 8n
+.B -PErsevere
+This option may be used to specify that all tests should be run,
+even if some fail.
+Defaults to the user's
+.I persevere_preference
+if not specified, see
+.IR aeuconf (5)
+for more information.
+.TP 8n
+.B -No_PErsevere
+This option may be used to specify that the test run should
+stop after the first failure.
+Defaults to the user's
+.I persevere_preference
+if not specified, see
+.IR aeuconf (5)
+for more information.
+.so o_project.so
+.TP 8n
+.B -PROGress
+This option may be used to specify that progress messages should be
+issued before each test run or before each batch test run in case
+.I batch_test_command
+field specified in project
+.I config
+file (see
+.IR aeuconf (5)
+for more information).
+.TP 8n
+.B -No_PROGress
+This option may be used to specify that progress messages should be
+suppressed.  This is the default.
+.so o_regress.so
+.TP 8n
+\fB-SUGgest\fP [ \fInumber\fP ]
+.br
+The \[lq]\fI\*(n) -Integrate_Pass\fP\[rq] command collects test
+correlation statistics when changes are integrated.
+This option may be used to request that \*(n) suggest
+which tests should be run, using these testing correlations.
+If no number is specified, 10 tests will be suggested.
+This option implies the
+.B -REGression
+option.
+.TP 8n
+\fB-SUGgest_Limit\fP \fIminutes\fP
+.br
+This option may be used to limit the number of tests to a certain number
+of minutes.  They will be run from most relevant to least relevant.
+.TP 8n
+\fB-SUGgest_Noise\fP \fInumber\fP
+.br
+This option may be used to control the amount of noise injected into the
+test selection performed by the \fB-SUGgest\fP option.
+The number is a percentage of noise to be injected.
+Defaults to 10 if not specified.
+The injection of noise ensures that a variety of tests are run
+on subsequent runs, and also some from left-field as a sanity check.
+.so o_terse.so
+.so o_verbose.so
+.so o_wait.so
+.so o__rules.so
+.SH RECOMMENDED ALIAS
+The recommended alias for this command is
+.nf
+.ta 8n 16n
+csh%	alias aet '\*(n) -t \e!* -v'
+sh$	aet(){\*(n) -t "$@" -v}
+.fi
+.SH ERRORS
+It is an error if
+the change is not in one of the
+.I "being developed"
+or
+.I "being integrated"
+states.
+.br
+It is an error if
+the change is not assigned to the current user.
+.br
+It is an error if
+your have no relevant tests and no relevant exemption.
+.so z_exit.so
+.br
+.ne 1i
+.SH SEE ALSO
+.TP 8n
+.IR aeb (1)
+build a change
+.TP 8n
+.IR aeca (1)
+modify the attributes of a change
+.TP 8n
+.IR aedb (1)
+begin development of a change
+.TP 8n
+.IR aeib (1)
+begin integration of a change
+.TP 8n
+.IR aent (1)
+add a new test to a change
+.TP 8n
+.IR aecp (1)
+copy an existing test into a change
+.TP 8n
+.IR aepconf (5)
+project configuration file format
+.TP 8n
+.IR aeuconf (5)
+user configuration file format
+.so z_cr.so

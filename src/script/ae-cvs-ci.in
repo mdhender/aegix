@@ -1,0 +1,30 @@
+#
+#	aegis - project change supervisor
+#	Copyright (C) 2004, 2006 Peter Miller
+#
+#	As a specific exception to the GPL, you are allowed to copy
+#	this source file into you own project and modify it, without
+#	releasing your project under the GPL, unless there is some other
+#	file or condition which would require it.
+#
+# MANIFEST: shell script to commit changes to CVS
+#
+case $# in
+2)
+    project=$1
+    change=$2
+    ;;
+*)
+    echo "Usage: $0 <project> <change>" 1>&2
+    exit 1
+    ;;
+esac
+
+here=`pwd`
+
+AEGIS_PROJECT=$project
+export AEGIS_PROJECT
+AEGIS_CHANGE=$change
+export AEGIS_CHANGE
+
+exec ae-repo-ci --repository=cvs --project=$project --change=$change

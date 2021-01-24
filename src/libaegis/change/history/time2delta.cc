@@ -1,0 +1,149 @@
+//
+//	aegis - project change supervisor
+//	Copyright (C) 2002-2008 Peter Miller
+//      Copyright (C) 2007 Walter Franzini
+//
+//	This program is free software; you can redistribute it and/or modify
+//	it under the terms of the GNU General Public License as published by
+//	the Free Software Foundation; either version 3 of the License, or
+//	(at your option) any later version.
+//
+//	This program is distributed in the hope that it will be useful,
+//	but WITHOUT ANY WARRANTY; without even the implied warranty of
+//	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//	GNU General Public License for more details.
+//
+//	You should have received a copy of the GNU General Public License
+//	along with this program. If not, see
+//	<http://www.gnu.org/licenses/>.
+//
+
+#include <common/error.h> // for assert
+#include <common/trace.h>
+#include <libaegis/change/branch.h>
+#include <libaegis/project.h>
+
+
+long
+change_history_timestamp_to_delta(project_ty *pp, time_t when)
+{
+    trace(("%s\n{\n", __PRETTY_FUNCTION__));
+    cstate_ty       *cstate_data;
+    cstate_branch_history_list_ty *hl;
+    change::pointer cp;
+
+    cp = pp->change_get();
+    cstate_data = cp->cstate_get();
+    if (!cstate_data->branch)
+	return 0;
+    hl = cstate_data->branch->history;
+    if (!hl)
+	return 0;
+
+    if (hl->length == 0)
+        return 0;
+
+    assert(hl->list);
+    if (!hl->list)
+        return 0;
+
+    //
+    // Find the right candidate using an algorithm with a logarithmic
+    // time complexity.
+    //
+
+    long start = 0;
+    long end = hl->length - 1;
+
+    cstate_branch_history_ty *bh_start = hl->list[start];
+    assert(bh_start);
+    time_t time_start =
+        pp->change_completion_timestamp(bh_start->change_number);
+
+    cstate_branch_history_ty *bh_end = hl->list[end];
+    assert(bh_end);
+    time_t time_end =
+        pp->change_completion_timestamp(bh_end->change_number);
+
+    //
+    // Find the right candidate using an algorithm with a logarithmic
+    // time complexity.
+    //
+    long result = 0;
+    for(;;)
+    {
+        assert (start <= end);
+
+        trace_long(start);
+        trace_long(end);
+
+        if (when == time_end)
+        {
+            assert(hl->list[end]);
+            result = hl->list[end]->delta_number;
+            break;
+        }
+
+        //
+        // This happend only at the 1st iteration if `when' is outside
+        // the interval.
+        //
+        if (when > time_end)
+        {
+            assert(hl->list[end]);
+            result = hl->list[end]->delta_number;
+            break;
+        }
+
+        if (when == time_start)
+        {
+            assert(hl->list[start]);
+            result = hl->list[start]->delta_number;
+            break;
+        }
+
+        //
+        // This happend only at the 1st iteration if `when' is outside
+        // the interval.
+        //
+        if (when < time_start)
+        {
+            result = 0;
+            break;
+        }
+
+        //
+        // If we cannot further reduce the interval and `when' is still
+        // missing we return the oldest change (pointed by start).
+        //
+        if (end - start == 1)
+        {
+            assert (time_end > when);
+            assert (when > time_start);
+            assert(hl->list[start]);
+
+            result = hl->list[start]->delta_number;
+            break;
+        }
+
+        long middle = start + (end - start) / 2;
+
+        cstate_branch_history_ty *bh_middle = hl->list[middle];
+        assert(bh_middle);
+	time_t time_middle =
+            pp->change_completion_timestamp(bh_middle->change_number);
+
+        if (when < time_middle)
+        {
+            time_end = time_middle;
+            end = middle;
+        }
+        else
+        {
+            time_start = time_middle;
+            start = middle;
+        }
+    }
+
+    return result;
+}

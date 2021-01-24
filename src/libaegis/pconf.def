@@ -1,0 +1,1543 @@
+/*
+ *	aegis - project change supervisor
+ *	Copyright (C) 1991-1996, 1998-2008 Peter Miller
+ *	Copyright (C) 2006 Walter Franzini;
+ *
+ *	This program is free software; you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License as published by
+ *	the Free Software Foundation; either version 3 of the License, or
+ *	(at your option) any later version.
+ *
+ *	This program is distributed in the hope that it will be useful,
+ *	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU General Public License for more details.
+ *
+ *	You should have received a copy of the GNU General Public License
+ *	along with this program. If not, see
+ *	<http://www.gnu.org/licenses/>.
+ *
+ *
+ * this file normally resides at "projdir"/baseline/config
+ *
+ * this file is only ever read by [me], so does not need locking.
+ * Indeed, it is in the baseline, and subject to history.
+ *
+ * if you change this file, don't forget to change
+ *	man5/aepconf.5
+ */
+
+#include <libaegis/common.def>
+
+/**
+  * The work_area_style type encapsulates a set of parameters
+  * controlling the appearance of the development directory and the
+  * integration directory.
+  */
+type work_area_style =
+{
+    /*
+     * The source_file_link field is true if hard links are to be
+     * used for project source files (which are not part of the change) so
+     * that the work area has a complete set of source files.
+     *
+     * Defaults to false if not set.
+     *
+     * If the host system does not have hard links, this field will be ignored.
+     *
+     * Maintaining the hard links can be time consuming for large
+     * projects, and add quite a noticeable delay before builds start
+     * doing anything.  If possible change your build system to use the
+     * $search_path instead and avoid links.
+     */
+    source_file_link = boolean;
+
+    /*
+     * The source_file_symlink field is true if symbolic links are to be
+     * used for project source files (which are not part of the change)
+     * so that the work area has a complete set of source files.
+     *
+     * Defaults to false if not set.
+     *
+     * If (source_file_link == true AND hard links are available) this
+     * field will be ignored.  If the host system does not have symbolic
+     * links, this field will be ignored.
+     *
+     * Maintaining the symbolic links can be time consuming for large
+     * projects, and add quite a noticeable delay before builds start
+     * doing anything.  If possible change your build system to use the
+     * $search_path instead and avoid symbolic links.
+     */
+    source_file_symlink = boolean;
+
+    /*
+     * The source_file_copy field is true if copies are to be used for
+     * project source files (which are not part of the change) so that
+     * the work area has a complete set of source files.  File
+     * modification time attributes will be preserved.
+     *
+     * Defaults to false if not set.
+     *
+     * If ((source_file_link == true AND hard links are available)
+     * OR (source_file_symlink == true AND symbolic links are available))
+     * this field will be ignored.
+     *
+     * Maintaining the copies can be time consuming (and space
+     * consuming) for large projects, and add quite a noticeable delay
+     * before builds start doing anything.  If possible change your
+     * build system to use the $search_path instead and avoid copies.
+     */
+    source_file_copy = boolean;
+
+    /*
+     * The source_file_whiteout field mat be used to sprecify the
+     * presence (true) or absence (false) of white out files, used to
+     * "cover up" files being removed by a change set.  These files
+     * contain 1KB of random data, intended to cause a syntax error
+     * should be build reference them.
+     *
+     * It is rarely necessary to explicitly set this field.  It
+     * defaults to false if you set any of the "source_file_link",
+     * "source_file_symlink" or "source_file_copy" to true; it defaults
+     * to false if none of them are true.
+     *
+     * Not meaningful (always false) for integration builds.
+     */
+    source_file_whiteout = boolean;
+
+    /*
+     * The derived_file_link field is true if hard links are to
+     * be used for non-source files which are present in the project
+     * baseline(s) but which are not present in the work area, so that
+     * the work area has a complete set of derived files.  This allows
+     * work areas to take advantage of "precompiled" object files (etc)
+     * in the baseline(s).
+     *
+     * Defaults to false if not set.
+     *
+     * If the host system does not have hard links, this field will be ignored.
+     *
+     * Maintaining the links can be time consuming for large projects,
+     * and add quite a noticeable delay before builds start doing
+     * anything.  If possible, change your build system to use the
+     * $search_path instead and avoid hard links.  Alternatively, set
+     * derived_at_start_only = true and your work area will get a "head
+     * start" but the derived files will not be checked for every build,
+     * but this will occasionally result in long build times after
+     * integrations.
+     *
+     * See also the integrate_begin_exceptions and symlink_exceptions
+     * fields (they apply to hard links as well as symbolic links).
+     */
+    derived_file_link = boolean;
+
+    /*
+     * The derived_file_symlink field is true if symbolic links are to
+     * be used for non-source files which are present in the project
+     * baseline(s) but which are not present in the work area, so that
+     * the work area has a complete set of derived files.  This allows
+     * work areas to take advantage of "precompiled" object files (etc)
+     * in the baseline(s).
+     *
+     * Defaults to false if not set.
+     *
+     * If (derived_file_link == true AND hard links are available) this
+     * field will be ignored.  If the host system does not have symbolic
+     * links, this field will be ignored.
+     *
+     * Maintaining the symbolic links can be time consuming for large
+     * projects, and add quite a noticeable delay before builds start
+     * doing anything.  If possible, change your build system to use the
+     * $search_path instead and avoid symbolic links.  Alternatively,
+     * set derived_at_start_only = true and your work area will get a
+     * "head start" but the derived files will not be checked for every
+     * build, occasionally resulting in long build times after integrations.
+     *
+     * See also the integrate_begin_exceptions and symlink_exceptions fields.
+     */
+    derived_file_symlink = boolean;
+
+    /*
+     * The derived_file_copy field is true if copies are to be used for
+     * non-source files which are present in the project baseline(s) but
+     * which are not present in the work area, so that the work area has
+     * a complete set of derived files.  This allows work areas to take
+     * advantage of "precompiled" object files (etc) in the baseline(s).
+     *
+     * Defaults to false if not set.
+     *
+     * If ((derived_file_link == true AND hard links are available)
+     * OR (derived_file_symlink == true AND symbolic links are available))
+     * this field will be ignored.
+     *
+     * Maintaining the copies can be time consuming (and space
+     * consuming) for large projects, and add quite a noticeable delay
+     * before builds start doing anything.  If possible, change your
+     * build system to use the $search_path instead and avoid symbolic
+     * links.  Alternatively, set derived_at_start_only = true and your
+     * work area will get a "head start" but the derived files will not
+     * be checked for every build, occasionally resulting in long build
+     * times after integrations.
+     *
+     * See also the integrate_begin_exceptions and symlink_exceptions
+     * fields (they apply to copies as well as symbolic links).
+     */
+    derived_file_copy = boolean;
+
+    /*
+     * The during_build_only field is set to true if you want the
+     * symbolic links, hard links and/or copies removed again after each
+     * build.  This allows the user to maintain the illusion of using
+     * a search path, without actually doing so.  This option is not
+     * especially efficient.
+     *
+     * Defaults to false if not set.
+     *
+     * If this field is false, the development directory will be
+     * populated by the develeop begin (edb) command, and the integratin
+     * directory will be populated by the integrate begin (aeib)
+     * command.
+     */
+    during_build_only = boolean;
+
+    /*
+     * The derived_at_start_only field controls whether the above fields
+     * controling the appearance of derived files are acted upon before
+     * every build (false) or only when the work area is created (true).
+     *
+     * Defaults to false if not set.
+     *
+     * This field is ignored if during_build_only is true.
+     */
+    derived_at_start_only = boolean;
+};
+
+/*
+ * The configuration_directory field names a directory which will
+ * be searched for additional configuration files.  (This directive is
+ * only leagal or meaningful in the master project "config" file.)
+ *
+ * All source files (change source files and project source files)
+ * present in this directory will be read in as if they were added to
+ * the end of the project "config" file.
+ *
+ * The usual priority of files (development directory, branch baseline,
+ * etc, project trunk baseline) is observed then these files are read.
+ *
+ * Please note that the physical directies are never searched, only
+ * Aegis concept of the change and project files is consulted.
+ * Placing additional files in the physical directories will have
+ * no effect.
+ */
+configuration_directory = string;
+
+/*
+ * how to build the project
+ *	(actually, how to do an integration build)
+ * mandatory
+ *
+ * All of the substitutions described in aesub(5) are available.
+ *
+ * Executed as: the intgerator (for integration builds) or the developer
+ *	(for development builds).
+ * Current directory: the integration directory of the change (for
+ *	integration builds) the development directory of the change
+ *	(for development builds).
+ * Exit status: zero is considered succes, non-zero is a failure
+ *	and a subsequent successful (exit zero) build will be required.
+ */
+build_command = string;
+
+/*
+ * The integration_directory_style field controls the appearance of the
+ * integration directory.
+ *
+ * If integration_directory_style is not set, it defaults to values
+ * based on OBSOLETE fields.  Defaults are shown on the right.
+ *
+ * integration_directory_style =
+ * {
+ *     source_file_symlink = create_symlinks_before_integration_build;  (false)
+ *     source_file_link = false;                                        (false)
+ *     source_file_copy = false;                                        (false)
+ *     derived_file_symlink = create_symlinks_before_integration_build; (false)
+ *     derived_file_link = link_integration_directory;                  (false)
+ *     derived_file_copy = !link_integration_directory;                 (false)
+ *     during_build_only = remove_symlinks_after_integration_build;     (false)
+ *     derived_at_start_only = true;                                    (false)
+ * };
+ */
+integration_directory_style = work_area_style;
+
+/*
+ * The development_directory_style field controls the appearance of the
+ * development directory.
+ *
+ * If integration_directory_style is not set, it defaults to values
+ * based on OBSOLETE fields (all of which default to false if not set):
+ *
+ * development_directory_style =
+ * {
+ *     source_file_symlink = create_symlinks_before_build;              (false)
+ *     source_file_hard_link = false;                                   (false)
+ *     source_file_copy = false;                                        (false)
+ *     derived_file_symlink = create_symlinks_before_build;             (false)
+ *     derived_file_hard_link = false;                                  (false)
+ *     derived_file_copy = false;                                       (false)
+ *     during_build_only = false;                                       (false)
+ *     derived_at_start_only = false;                                   (false)
+ * };
+ */
+development_directory_style = work_area_style;
+
+/*
+ * how to do a development build
+ * defaults to above
+ *
+ * All of the substitutions described in aesub(5) are available.
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: zero is considered succes, non-zero is a failure
+ *	and a subsequent successful (exit zero) build will be required.
+ */
+development_build_command = string;
+
+/*
+ * This command is run when Aegis adjusts the last-time-modified
+ * timestamp on files in the integration directory.  If the build tool
+ * uses additional information to supplement file modification times, this
+ * command gives you the opportunity to re-sync the associated database.
+ *
+ * Executed as: the project owner
+ * Current directory: the new project baseline
+ * Exit status: ignored
+ */
+build_time_adjust_notify_command = string;
+
+/*
+ * This field is set to true if the build command, when executed on any
+ * architecture, results in all architectures being built.  This may be
+ * accomplished, for example, by using cross-compilation techiniques, or
+ * Cook's ability to nominate hosts on which to execute each build rule.
+ */
+build_covers_all_architectures = boolean;
+
+/*
+ * This field is set to true if the test command, when executed on any
+ * architecture, results in all architectures being tested.  This may be
+ * accomplished, for example, by using Cook's ability to nominate hosts
+ * on which to execute each test rule.
+ */
+test_covers_all_architectures = boolean;
+
+/*
+ * Executed whenever the files in the change, change.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${File_List}
+ *	space separated list of files named
+ *	(at times, can be empty)
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+change_file_command = string;
+
+/*
+ * Executed whenever the aegis -new_file command is run successfully.
+ * Defaults to `change_file_command' if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${File_List}
+ *	space separated list of files named
+ *	(at times, can be empty)
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+new_file_command = string;
+
+/*
+ * Executed whenever the aegis -new_test command is run successfully.
+ * Defaults to `change_file_command' if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${File_List}
+ *	space separated list of files named
+ *	(at times, can be empty)
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+new_test_command = string;
+
+/*
+ * Executed whenever the aegis -copy_file command is run successfully.
+ * Defaults to `change_file_command' if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${File_List}
+ *	space separated list of files named
+ *	(at times, can be empty)
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+copy_file_command = string;
+
+/*
+ * Executed whenever the aegis -remove_file command is run successfully.
+ * Defaults to `change_file_command' if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${File_List}
+ *	space separated list of files named
+ *	(at times, can be empty)
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+remove_file_command = string;
+
+/*
+ * Executed whenever the files in the change, change by being undone
+ * (aenfu, aecpu, aermu, aentu).
+ * Defaults to change_file_command if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${File_List}
+ *	space separated list of files named
+ *	(at times, can be empty)
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+change_file_undo_command = string;
+
+/*
+ * Executed whenever the aegis -new_file_undo command is run successfully.
+ * Defaults to change_file_undo_command if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${File_List}
+ *	space separated list of files named
+ *	(at times, can be empty)
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+new_file_undo_command = string;
+
+/*
+ * Executed whenever the aegis -new_test_undo command is run successfully.
+ * Defaults to change_file_undo_command if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${File_List}
+ *	space separated list of files named
+ *	(at times, can be empty)
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+new_test_undo_command = string;
+
+/*
+ * Executed whenever the aegis -copy_file_undo command is run successfully.
+ * Defaults to change_file_undo_command if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${File_List}
+ *	space separated list of files named
+ *	(at times, can be empty)
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+copy_file_undo_command = string;
+
+/*
+ * Executed whenever the aegis -remove_file_undo command is run successfully.
+ * Defaults to change_file_undo_command if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${File_List}
+ *	space separated list of files named
+ *	(at times, can be empty)
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+remove_file_undo_command = string;
+
+/*
+ * The make_transparent_command is executed whenever the
+ * aegis -make_transparent command is run successfully.
+ * Defaults to `change_file_command' if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${File_List}
+ *	space separated list of files named
+ *	(at times, can be empty)
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+make_transparent_command = string;
+
+/*
+ * The make_transparent_undo_command is executed whenever the
+ * aegis -make_transparent_undo command is run successfully.
+ * Defaults to `change_file_undo_command' if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${File_List}
+ *	space separated list of files named
+ *	(at times, can be empty)
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+make_transparent_undo_command = string;
+
+/*
+ * Executed at development build before 'development_build_command' when
+ *	(a)	it is the first build after a develop begin, or
+ *	(b)	after some other change has been integrated into the baseline
+ *		since the last build.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+project_file_command = string;
+
+/*
+ * Executed at develop begin
+ *
+ * All of the substitutions described in aesub(5) are available.
+ *
+ * Executed as: the developer
+ * Current directory: the development directory of the change
+ * Exit status: ignored
+ */
+develop_begin_command = string;
+
+/*
+ * Executed at develop begin undo
+ *
+ * All of the substitutions described in aesub(5) are available.
+ *
+ * Executed as: the developer
+ * Current directory: unchanged.
+ * Exit status: ignored
+ */
+develop_begin_undo_command = string;
+
+/*
+ * Executed at integrate begin
+ *
+ * All of the substitutions described in aesub(5) are available.
+ *
+ * Executed as: the project owner
+ * Current directory: the integration directory
+ * Exit status: ignored
+ */
+integrate_begin_command = string;
+
+/*
+ * Executed at integrate begin undo.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ *
+ * Executed as: the project owner
+ * Current directory: the development directory
+ * Exit status: ignored
+ */
+integrate_begin_undo_command = string;
+
+/*
+ * This flag is true if aegis should link the files from the baseline
+ * into the integration directory, rther than copy them (the default).
+ * This has risks, as the build script (e.g. Howto.cook or Makefile, etc)
+ * must unlink targets before rebuilding them.
+ *
+ * Defaults to false if not uset.
+ */
+link_integration_directory = boolean;
+
+/*
+ * This field may be used to specify files (and file patterns) which are
+ * to be omitted from the copy (link) of the baseline when creating the
+ * integration directory.
+ */
+integrate_begin_exceptions = [ string ];
+
+/*
+ * This field is OBSOLETE.
+ *
+ * This flag is true if aegis should create symlinks from the
+ * development directory to the baseline for all files in the baseline
+ * not in the development directory immediately before a
+ * development_build_command is issued.  Usually use to trick dumb DMTs
+ * into believeing the development directory contains an entire copy of
+ * the project, though sometimes the DMT is smart enough, the tools it
+ * must work with are not.  Symlinks in the development directory which
+ * point to nonexistent files will be removed.
+ *
+ * Defaults to false if not set.
+ */
+create_symlinks_before_build = boolean;
+
+/*
+ * This field is OBSOLETE.
+ *
+ * This flag is true if aegis should create symlinks from the integration
+ * directory to the baseline for all files in the baseline not in the
+ * integration directory immediately before a build_command is issued.
+ * Usually use to trick dumb DMTs into believeing the integration
+ * directory contains an entire copy of the project, though sometimes
+ * the DMT is smart enough, the tools it must work with are not.
+ * Symlinks in the integration directory which point to nonexistent
+ * files will be removed.
+ *
+ * Defaults to the same value as create_symlinks_before_build if not set.
+ */
+create_symlinks_before_integration_build = boolean;
+
+/*
+ * This field is OBSOLETE.
+ *
+ * This flag is true if aegis should remove symlinks which point from
+ * the development directory to the baseline directory immediately
+ * after a development_build_command is issued.  Only consulted if
+ * the create_symlinks_before_build field is true, for the porpose of
+ * reversing the actions of the create_symlinks_before_build field.
+ *
+ * Defaults to false if not set.
+ */
+remove_symlinks_after_build = boolean;
+
+/*
+ * This field is OBSOLETE.
+ *
+ * This flag is true if aegis should remove symlinks which point
+ * from the integration directory to the baseline directory
+ * immediately after a build_command is issued.  Only consulted
+ * if the create_symlinks_before_integration_build field
+ * is true, for the porpose of reversing the actions of the
+ * create_symlinks_before_integration_build field.
+ *
+ * Defaults to true if not set.  This default is intentional.  It is
+ * important that there are no symlinks in the (new) baseline, because
+ * they could go stale between integrations.  If you set this field to
+ * false, caveat emptor.
+ */
+remove_symlinks_after_integration_build = boolean;
+
+/*
+ * This field is used to name specific files for which symbolic links
+ * must not be made between the development directory and the baseline.
+ * These are usually state files for various tools.
+ */
+symlink_exceptions = [ string ];
+
+/*
+ * the history commands are pretty dicey to have here,
+ * because a project could be badly broken if these don't work just right!
+ * On the other hand, they need to be changed from time to time.
+ */
+
+/*
+ * create a new history
+ * always executed as the project owner
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${Input}
+ *	absolute path of the source file
+ *
+ * ${History}
+ *	absolute path of the history file
+ *
+ * ${File_Name}   (Optional)
+ *      The base relative file name of the file for this check-in.  Note
+ *      that the file name can vary over the lifetime of the file as it
+ *      is renamed, but the history file name never does.
+ *	DO NOT use this as the name of the history file.
+ *
+ * ${UUID}   (Optional)
+ *	The universally unique identifier for this file.
+ *	This is invariant for the lifetime of the file.
+ *	DO NOT use this as the name of the history file.
+ *
+ * Executed as: the project owner
+ * Current directory: the base of the history tree
+ * Exit status: zero indicates succes, all non-zero exits indicate failure
+ *	(the integrate pass will fail).
+ */
+history_create_command = string;
+
+/*
+ * get a file from history
+ * may be executed by developers
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${History}
+ *	absolute path of the history file
+ *
+ * ${Edit}
+ *	edit number to be extracted (artibrary string)
+ *
+ * ${Output}
+ *	Absolute path of output file.
+ *
+ * Executed as: the developer (or the executing user, in the case of
+ *	the -independent option).
+ * Current directory: the base of the history tree
+ * Exit status: zero indicates succes, all non-zero exits indicate failure
+ *	(the aecp will fail).
+ */
+history_get_command = string;
+
+/*
+ * add a new change to the history
+ * always executed as the project owner
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${Input}
+ *	absolute path of the source file
+ *
+ * ${History}
+ *	absolute path of the history file
+ *
+ * ${File_Name}   (Optional)
+ *	the base relative file name of the file for this check-in.
+ *	Note that the filename can vary, but the history file never does.
+ *	DO NOT use this as the name of the history file.
+ *
+ * ${UUID}   (Optional)
+ *	The universally unique identifier for this file.
+ *	This is invariant for the lifetime of the file.
+ *	DO NOT use this as the name of the history file.
+ *
+ * Executed as: the project owner
+ * Current directory: the base of the history tree
+ * Exit status: zero indicates succes, all non-zero exits indicate failure
+ *	(the integrate pass will fail).
+ */
+history_put_command = string;
+
+/*
+ * query the topmost edit of a history file
+ * Result to be printed on stdout.
+ * may be executed by developers
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${History}
+ *	absolute path of the history file
+ *
+ * Executed as: the project owner
+ * Current directory: the base of the history tree
+ * Exit status: zero indicates succes, all non-zero exits indicate failure
+ *	(the integrate pass will fail).
+ */
+history_query_command = string;
+
+/*
+ * The history_transaction_begin_command field is used to specify a
+ * command to be run by aeipass(1) before any history create or history
+ * put commands are run.  The default is to do nothing.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * If you need a transaction ID, use the $version substitution.
+ *
+ * Executed as: the project owner
+ * Current directory: the base of the history tree
+ * Exit status: zero indicates succes, all non-zero exits indicate failure
+ *	(the integrate pass will fail).
+ */
+history_transaction_begin_command = string;
+
+/*
+ * The history_transaction_end_command field is used to specify a
+ * command to be run by aeipass(1) after any history create or history
+ * put commands are run, but before any history query commands are run.
+ * The default is to do nothing.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * If you need a transaction ID, use the $version substitution.
+ *
+ * Executed as: the project owner
+ * Current directory: the base of the history tree
+ * Exit status: zero indicates succes, all non-zero exits indicate failure
+ *	(the integrate pass will fail).
+ */
+history_transaction_end_command = string;
+
+/*
+ * The history_transaction_abort_command field is used to specify a
+ * command to be run by aeipass(1) to indicate that a transaction has
+ * been abandoned.  The default is to do nothing.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * If you need a transaction ID, use the $version substitution.
+ *
+ * Executed as: the project owner
+ * Current directory: the base of the history tree
+ * Exit status: ignored.
+ */
+history_transaction_abort_command = string;
+
+/*
+ * Many history tools (e.g. RCS) can modify the contents of the file
+ * when it is committed.  While there are usually options to turn this
+ * off, they are seldom used.  The problem is: if the commit changes the
+ * file, the source in the repository now no longer matches the object
+ * file in the repository - i.e. the history tool has compromised the
+ * referential integrity of the repository.
+ *
+ * fatal
+ *	Emit a fatal error if a source file is modified by a
+ *	history_put_command or history_create_command.
+ *	This is the default.
+ *
+ * warn
+ *	Emit a warning if a source file is modified.
+ *
+ * ignore
+ *	Ignore a source file changing.	You sure better hope it was only
+ *	in a comment!
+ */
+history_put_trashes_file = (fatal, warn, ignore);
+
+/*
+ * This field describes the content style which the history tool is
+ * capable of working with.
+ *
+ * ascii_text
+ *	The history tool can only cope with files which contain printable
+ *	ASCII characters, plus space, tab and newline.	The file must
+ *	end with a newline.  This is the default.
+ *
+ * international_text
+ *	The history tool can only cope with files which do not contain
+ *	the NUL character.  The file must end with a newline.  This is
+ *	the default.
+ *
+ * binary_capable
+ *	The history tool can cope with files without any limitation on
+ *	the form of the contents.
+ *
+ * When a file is added to the history (by either the history_create_
+ * command or the history_put_command) it is examined for conformance
+ * to this limitation.  If there is a problem, the file is encoded in
+ * either quoted printable for MIME64, whichever is smaller, before
+ * being given to the history tool.  This encoding is transparent,
+ * the file in the baseline is unchanged.
+ *
+ * On extract (the history_get_command) the encoding is reversed, using
+ * information attached to the change file information.  This is because
+ * each put could use a different encoding (although in practice, file
+ * contents rarely change that dramatically, and the same encoding is
+ * likely to be deduced every time).
+ */
+history_content_limitation = (ascii_text, international_text, binary_capable);
+
+/*
+ * The history_label_command is executed at integration pass, and
+ * when executing aedn(1) to label the file version in history with a
+ * particular label.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${History}
+ *	absolute path of the history file.
+ *
+ * ${Edit}
+ *	edit number to be extracted (artibrary string).
+ *
+ * ${Label}
+ *	During aedn(1), this is set to the name given in the command.
+ *      At integration pass it is the same as ${Version}.
+ *
+ * Executed as: the project owner
+ * Current directory: the base of the history tree
+ * Exit status: zero indicates succes, all non-zero exits indicate failure
+ *	(the integrate pass, but a warning will be issued).
+ */
+history_label_command = string;
+
+/*
+ * difference of 2 files
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${ORiginal}
+ *	absolute path of file in baseline (usually)
+ *
+ * ${Input}
+ *	absolute path of file in development directory (usually)
+ *
+ * ${Output}
+ *	Absolute path of output file
+ *
+ * Executed as: the project owner (for integration diffs), or the
+ *	developer (for development diffs)
+ * Current directory: the integration directory (for integration diffs),
+ *	or the development directory (for development diffs)
+ * Exit status: zero indicates succes, all non-zero exits indicate failure
+ *	(the aed will fail).
+ */
+diff_command = string;
+
+/*
+ * This command is used to obtain the difference of 3 files.  This command
+ * is deprecated, in favour of the merge_command, below.  All of the
+ * substitutions described in aesub(5) are available.  In addition:
+ *
+ * ${ORiginal}
+ *	Absolute path of common ancestor
+ *
+ * ${Most_Recent}
+ *	Absolute path of competing edit, usually in the baseline.
+ *
+ * ${Input}
+ *	absolute path of file in development directory (usually)
+ *
+ * ${Output}
+ *	absolute path of output file
+ *
+ * Executed as: the developer
+ * Current directory: the development directory
+ * Exit status: zero indicates succes, all non-zero exits indicate failure
+ *	(the aed will fail).
+ */
+diff3_command = string;
+
+/*
+ * This command is used to merge two competing edits.
+ *
+ * This command is almost identical to the diff3_command, above.  However,
+ * with this command, Aegis will have already moved the input file to a
+ * back-up name; the output name will be the name of the source file.
+ * (It is the source file which is being reconstructed, after all,
+ * from the two competing edits.)
+ *
+ * Historically, the diff3_command as abused to perform an in-situ merge
+ * (by moving the $output back over the $input); this resulted in the
+ * completion message disagreeing with the performed action.
+ * This command MUST NOT move its input and output files around.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${ORiginal}
+ *	Absolute path of common ancestor
+ *
+ * ${Most_Recent}
+ *	Absolute path of competing edit, usually in the baseline.
+ *
+ * ${Input}
+ *	absolute path of file in development directory (usually)
+ *
+ * ${Output}
+ *	absolute path of output file, in the development directory (usually)
+ *
+ * Executed as: the developer
+ * Current directory: the development directory
+ * Exit status: zero indicates succes, all non-zero exits indicate failure
+ *	(the aed will fail).
+ */
+merge_command = string;
+
+/*
+ * The difference of 2 files, to send around as a patch.  (This isn't the
+ * same as diff_command, because it's aimed at GNU Patch, not at humans.)
+ *
+ * Defaults to "set +e; diff -c -L $index -L $index $original $input >
+ * $output; text $? -le 1" if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${ORiginal}
+ *	absolute path of file in baseline (usually)
+ *
+ * ${Input}
+ *	absolute path of file in development directory (usually)
+ *
+ * ${Output}
+ *	Absolute path of output file
+ *
+ * ${INDex}
+ *	Project relative name of the file, for use in index lines,
+ *	such as GNU diff's -L option.  Optional.
+ *
+ * Executed as: the executing user.
+ * Current directory: the development directory for change in progress,
+ *	the integration doirectory for change bein integrated, the
+ *	baseline for changes which are completed.
+ * Exit status: zero indicates succes, all non-zero exits indicate failure
+ *	(the aed will fail).
+ */
+patch_diff_command = string;
+
+/*
+ * The difference of 2 files, to fiure out the differences between version
+ * for the aeannotate listing.  (This isn't the same as diff_command,
+ * because it's aimed at aeannotate, not at humans.)
+ *
+ * Defaults to "set +e; diff $option $original $input > $output; text $? -le 1"
+ * if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ * In addition:
+ *
+ * ${ORiginal}
+ *	absolute path of file in baseline (usually)
+ *
+ * ${Input}
+ *	absolute path of file in development directory (usually)
+ *
+ * ${Output}
+ *	Absolute path of output file
+ *
+ * ${INDex}
+ *	Project relative name of the file, for use in index lines,
+ *	such as GNU diff's -L option.  Optional.
+ *
+ * ${OPTion}
+ *	Extra options to be passed to the diff command, as set by the
+ *	aeannotate -diff-option command line option.  Use with care.
+ *
+ * Executed as: the executing user.
+ * Current directory: the development directory for change in progress,
+ *	the integration doirectory for change bein integrated, the
+ *	baseline for changes which are completed.
+ * Exit status: zero indicates succes, all non-zero exits indicate failure
+ *	(the aed will fail).
+ */
+annotate_diff_command = string;
+
+/*
+ * This field is used to set the command to be executed by 'aegis -test'.
+ * Defaults to "$shell $filename" if not set.
+ *
+ * All of the substitutions described in aesub(5) are available,
+ * In addition:
+ *
+ * ${File_Name}
+ *	the absolute path of the test to be executed.
+ * ${VARiables}
+ *      the text of name=value variable settings from the command line,
+ *      suitably quoted to protect special character from the shell.
+ *      Will be appended to the end of the command if not used explicitly.
+ *
+ * Note that tests are source files, and thus never have the execute bit set.
+ *
+ * Executed as: the project owner (for integration tests) or the developer
+ *	(for development tests), or the executing user (for -independent tests)
+ * Current directory: the integration directory (for integration tests),
+ *	the development directory (for development tests), the project
+ *	baseline (for -bl tests), or the current directory (for
+ *	-indenpendent tests).
+ * Exit status: zero indicates succes, one indicates failure, anything
+ *	else indicates "no result".
+ */
+test_command = string;
+
+/*
+ * This field is used to set the command to be executed by 'aegis
+ * -test' by a developer.  Defaults to be the same as the
+ * test_command field if not set.  It is a significantly bad idea to
+ * make tests behave differently in development tests and integration
+ * tests; avoid this at all costs.
+ *
+ * All of the substitutions described in aesub(5) are available,
+ * In addition:
+ *
+ * ${File_Name}
+ *	the absolute path of the test to be executed.
+ * ${VARiables}
+ *      the text of name=value variable settings from the command line,
+ *      suitably quoted to protect special character from the shell.
+ *      Will be appended to the end of the command if not used explicitly.
+ *
+ * Note that tests are source files, and thus never have the execute bit set.
+ *
+ * Executed as: the developer
+ * Current directory: the development directory (for development tests),
+ *	the project baseline (for -bl tests)
+ * Exit status: zero indicates succes, one indicates failure, anything
+ *	else indicates "no result".
+ */
+development_test_command = string;
+
+/*
+ * This is an advanced field, used to run more than test at once.
+ * It is of most use if you have a multi-processor machine.
+ *
+ * All of the substitutions described in aesub(5) are available,
+ * In addition:
+ *
+ * ${File_Names}
+ *	The base-relative paths of the tests to be executed.  Note that
+ *	tests are source files, and thus never have the execute bit set.
+ * ${VARiables}
+ *      the text of name=value variable settings from the command line,
+ *      suitably quoted to protect special character from the shell.
+ *      Will be appended to the end of the command if not used explicitly.
+ * ${Ouput}
+ *	The absolute path of a file in aetest(5) format, to be created
+ *	by the batch test command, to contain the results of the tests.
+ *
+ * Executed as: the project owner (for integration tests) or the developer
+ *	(for development tests), or the executing user (for -independent tests)
+ * Current directory: the integration directory (for integration tests),
+ *	the development directory (for development tests), the project
+ *	baseline (for -bl tests), or the current directory (for
+ *	-indenpendent tests).
+ * Exit status: zero indicates success, one indicates failure.
+ *	Individual test tesults are read from $output.
+ */
+batch_test_command = string;
+
+
+/*
+ * This command is executed to help determine the architecture of the
+ * machine.  If it is empty or undefined then nothing is done.
+ */
+architecture_discriminator_command = string ;
+
+/*
+ * This is a list of system and machine architectures on which each
+ * change must successfully build and test.
+ */
+architecture =
+[
+	{
+		/*
+		 * The name of an architecture.  Available as the
+		 * ${ARCHitecture} substitution, the AEGIS_ARCH
+		 * environment variable, and listed in the architecture
+		 * field of the cattr/cstate file.
+		 */
+		name = string;
+
+		/*
+		 * A pattern in the form "sysname-release-version-machine".
+		 * Normal filename matching wildcards may be used.
+		 */
+		pattern = string;
+
+		/*
+		 * The type of architecture this is.  By default, if
+		 * an architecture is named in the *change* attributes,
+		 * it is required (unless an exception has been granted,
+		 * in which case it isn't in the list).
+		 *
+		 * However, you can have "optional" architectures for
+		 * which you can build and test, but they don't contribute
+		 * to the overall timestamps.
+		 */
+		mode = (required, optional, forbidden);
+	}
+]
+	redefinition_ok;
+
+/*
+ * new file templates
+ *	(Body and body_command are mutually exclusive.)
+ */
+file_template =
+[
+	{
+		pattern = [ string ];
+		body = string;
+		body_command = string;
+	}
+]
+	redefinition_ok;
+
+/*
+ * Whiteout templates are used to produce "whiteout" files in the
+ * development directory when a file has been removed.  The idea is that
+ * if it is referenced during the build, it will result in compile errors.
+ * If no patters match, 1 1K junk file will be used instead.  An *absent*
+ * body field means don't create any whiteout.
+ */
+whiteout_template =
+[
+	{
+		pattern = [ string ];
+		body = string;
+	}
+]
+	redefinition_ok;
+
+/*
+ * This field is used to limit the length of filenames.  All new files
+ * may not have path components longer than this.  Existing files are not
+ * affected.  The last component must also allow for the ",D" suffix of
+ * difference files.  Where this value is larger than the file system
+ * allows, the file system limit will be imposed.
+ * Defaults to 255 if not set.
+ */
+maximum_filename_length = integer;
+
+/*
+ * This field may be used to limit the characters allowed
+ * in filenames to only those explicitly allowed by POSIX.
+ * Defaults to false if not set.
+ *
+ * For a filename to be portable across conforming implementations of
+ * IEEE Std 1003.1-1988, it shall consist only of alphanumeric
+ * characters, dot, hyphen or underscore.  Hyphen shall not be used
+ * as the first character of a portable filename.
+ *
+ * If this field is false, all characters are allowed
+ * except non-printing characters, space characters and leading hypens.
+ */
+posix_filename_charset = boolean;
+
+/*
+ * This field may be used to limit filesnames so that they conform to
+ * the DOS 8+3 filename limits and to the DOS filename character set.
+ * Defaults to false if not set.  This field is used in combination
+ * with the other filename fields, it does not replace them.
+ *
+ * It also denies use of the filenames which look like device names,
+ * such as [aA][uU][xX] etc.
+ */
+dos_filename_required = boolean;
+
+/*
+ * This field may be used to limit filesnames so that they conform to
+ * the Windows98 and WindowsNT filename limits.  Defaults to false if
+ * not set.  This field is used in combination with the other filename
+ * fields, it does not replace them.
+ *
+ * It also denies use of the filenames which look like device names,
+ * such as [aA][uU][xX] etc.
+ */
+windows_filename_required = boolean;
+
+/*
+ * This field may be used to limit filenames so that they may not contain
+ * shell special characters.  If you do not set this to true, you will
+ * need to use the ${quote} substitution around filenames in commands,
+ * or risk unexpected errors.  This field defaults to true if not set.
+ *
+ * The user must take great care to use the ${quote} substitution around
+ * all file names in commands in the project configuration.
+ */
+shell_safe_filenames = boolean;
+
+/*
+ * This field may be used to allow white space characters in file names.
+ * This will allow the following characters to appear in filenames:
+ * backspace (BS, \b, 0x08), horizontal tab (HT, \t, 0x09), new line
+ * (NL, \n, 0x0A), vertical tab (VT, \v, 0x0B), form feed (FF, \f,
+ * 0x0C), and carriage return (CR, \r, 0x0D).
+ *
+ * Defaults to false if not set.
+ *
+ * The user must take great care to use the ${quote} substitution around
+ * all file names in commands in the project configuration.  And even
+ * then, substitutions which expect a space separated list of file names
+ * will have undefined results.
+ */
+allow_white_space_in_filenames = boolean;
+
+/*
+ * This field may be used to allow file names with non-ascii-printable
+ * characters in them.  Usually this would mean a UTF8 or international
+ * charset of some kind.
+ *
+ * Defaults to false if not set.
+ */
+allow_non_ascii_filenames = boolean;
+
+/*
+ * This field is used to specify a list of patterns of acceptable
+ * filenames.  The patterns are constructed from the usual shell
+ * filename wildcards.  Defaults to "*" if not set.
+ */
+filename_pattern_accept = [ string ];
+
+/*
+ * This field is used to specify a list of patterns of unacceptable
+ * filenames.  The patterns are constructed from the usual shell
+ * filename wildcards.  Defaults to "*,D" if not set.  The pattern
+ * "*,D" is always appended.
+ *
+ * Where the filename_pattern_accept and filename_pattern_reject fields
+ * conflict, the reject takes precedence.
+ */
+filename_pattern_reject = [ string ];
+
+/*
+ * This string is used to form the filename of new tests, where the
+ * filename is not specified on the aent command line.
+ *
+ * Defaults to "test/$hundred/t$number$type.sh" if not set.
+ *
+ * All of the substitutions defined in aesub(5) are available.  The
+ * following 3 substitutions are also available:
+ *
+ * Hundred	The test number divided by 100, zero padded to 2 digits
+ *			(Optional)
+ * Number	The test number, zero padded to 4 digits
+ *			(Mandatory)
+ * Type		The test type (a = automatic, m = manual)
+ *			(Optional)
+ */
+new_test_filename = string;
+
+/*
+ * This field is used to determine the name of the development directory
+ * at develope begin.  All of the substitutions defined in aesub(5) are
+ * available.  The following substitutions is also available:
+ *
+ * Default_Development_Directory
+ *		The directory within which the development directory is
+ *		to be created.
+ * Magic
+ *		A single letter, starting from "C", which can be
+ *		inserted.  This must be used, as it allows Aegis to try
+ *		different names should there be a conflict.
+ *
+ * If not set, defaults to
+ *	"$ddd/${left $p ${expr ${namemax $ddd} - ${length .$magic$c}}}.$magic$c"
+ * For DOS compatibility (8+3 filenames), a useful setting is
+ *	"$ddd/${downcase ${left ${id $p} 7}$magic}.${right 00$change 3}"
+ */
+development_directory_template = string;
+
+/*
+ * This field is used to form the filename for metrics gathering.
+ * The metrics file will be read by aeipass, if present, and stored in the
+ * change file metrics field.  The following substitutions are available:
+ *
+ * File_Name
+ *   		The name of the source file the statistics relate to.
+ *
+ * If not set, defaults to
+ *	"$filename,S"
+ * a common DOS-compatible alternative is
+ *	"metrics/$filename"
+ */
+metrics_filename_pattern = string;
+
+/*
+ * This list of filename patterns is consulted by aedist --receive when it
+ * is checking for files which could be used to host Trojan horse attacks.
+ * This will be different for different projects, so you will need to
+ * update this youself.
+ */
+trojan_horse_suspect = [ string ];
+
+/*
+ * This is a list of project specific vales.  They may be accessed by
+ * using the ${project_specific <name> } subsstitution.  See aesub(5)
+ * for more information.
+ */
+project_specific = attributes
+	redefinition_ok;
+
+/*
+ * This field controls the adjustment of file modification times at the
+ * end of integrate-pass.  File times are adjusted so that development
+ * directories are, in the main, out of date with respect to the baseline.
+ * The idea is that, at the very least, programs need to be relinked so
+ * that aet -reg does not give false negatives.
+ *
+ * Combining this with the project_file_command (above) can alleviate the
+ * vast majority of file mo time inconsistencies experienced as a result
+ * of a project integration and the subsequent changes in the baseline's
+ * mod times.
+ *
+ * Unless you are a masochist, do not set this field.  Leave it as the default.
+ *
+ * adjust_and_sleep
+ *	Causes the file times to be adjusted, and if the file times
+ *	would extend into the future, aeipass will sleep until that time
+ *	has passed.  This is the default.
+ *
+ * adjust_only
+ *	Causes the file times to be adjusted.  If the file time extend
+ *	into the future, a warning is issued.
+ *
+ * dont_adjust
+ *	File modification times are not adjusted.  This is a really bad
+ *	idea.  Really.	Make sure that, at the very minimum,
+ *	project_file_command touches all of the change's files,
+ * 	otherwise the build problems which ensue are going to take you
+ * 	weeks to track down and lose you mucho productivity.
+ * 	You have been warned.
+ *
+ * See also the build_time_adjust_notify_command field.
+ */
+build_time_adjust = (adjust_and_sleep, adjust_only, dont_adjust);
+
+/*
+ * If this field is set, each aedb, aechown, aede and aerpass will
+ * append a Signed-off-by: line to the change description.  This should
+ * only be set to true for open source projects.
+ *
+ * For a description of Signed-off-by see
+ * http://www.ussg.iu.edu/hypermail/linux/kernel/0405.2/1301.html
+ * http://www.osdl.org/newsroom/press_releases/2004/2004_05_24_dco.html
+ *
+ *
+ * Developer's Certificate of Origin 1.0
+ *
+ * By making a contribution to this project, I certify that:
+ *
+ * (a) The contribution was created in whole or in part by me and I have
+ *     the right to submit it under the open source license indicated in
+ *     the file; or
+ *
+ * (b) The contribution is based upon previous work that, to the best
+ *     of my knowledge, is covered under an appropriate open source
+ *     license and I have the right under that license to submit that
+ *     work with modifications, whether created in whole or in part by
+ *     me, under the same open source license (unless I am permitted to
+ *     submit under a different license), as indicated in the file; or
+ *
+ * (c) The contribution was provided directly to me by some other person
+ *     who certified (a), (b) or (c) and I have not modified it.
+ */
+signed_off_by = boolean;
+
+/*
+ * Executed whenever the aegis -review_pass command is run.
+ * Defaults to `exit 0;' if not set.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ *
+ * Executed as: the current reviewer.
+ * Current directory: the development directory of the change
+ * Exit status: zero means the change has been reviewed sufficiently.
+ *	non-zero means that further review(s) are necessary.
+ */
+review_policy_command = string;
+
+/*
+ * Executed whenever the aegis -develop_end command is run.
+ * Defaults to `exit 0;' if not set.
+ *
+ * This command is executed before any action is taken.  If it returns a
+ * non-zero exit status, the change may not leave the "being developed"
+ * state.
+ *
+ * All of the substitutions described in aesub(5) are available.
+ *
+ * Executed as: the current reviewer.
+ * Current directory: the development directory of the change
+ * Exit status: zero means the change has been reviewed sufficiently.
+ *	non-zero means that further review(s) are necessary.
+ */
+develop_end_policy_command = string;
+
+/*
+ * The unchanged_file_develop_end_policy field is used to control
+ * what happens when development of a change is ended, and the change
+ * contains files which have not had their contents or their attributes
+ * changed.
+ *
+ * ignore
+ *     Does not look for or warn about unchanged files.
+ * warning
+ *     If the change sets contains unchanged files, an warning will be
+ *     issued for each one.
+ * error
+ *     If the change set contains unchanged files, an error will be
+ *     issued for each one, and develop end will not complete (and the
+ *     change will remain in the "being developed" state).
+ */
+unchanged_file_develop_end_policy = (ignore, warning, error);
+
+/*
+ * The unchanged_file_integrate_pass_policy field is used to control
+ * what happens when a change is completed, and the change contains
+ * files which have not had their contents or their attributes changed.
+ *
+ * ignore
+ *     Does not look for or warn about unchanged files.
+ * warning
+ *     If the change sets contains unchanged files, an warning will be
+ *     issued for each one.
+ * remove
+ *     If the change set contains unchanged files, they will be silently
+ *     removed from the change set.  The project file is unaffected.
+ */
+unchanged_file_integrate_pass_policy = (ignore, warning, remove);
+
+/*
+ * It is possible to have Aegis cache the list of project files that
+ * were present at integrate pass for each delta (integrated change
+ * set).  This is used to optimize all project_file_roll_forward-based
+ * operations, such as aecp -delta or aepatch.
+ *
+ * This cache will optimize many operations which would otherwise
+ * require time to reconstruct the project state using the
+ * roll-foworward data available in each change set.  However, it comes
+ * at the cost of disk space, and not everyone can afford more and more
+ * disk.
+ *
+ * This field defaults to true if not set.
+ */
+cache_project_file_list_for_each_delta = boolean;
+
+/*
+ * It is possible to have Aegis exclude from the clean process any file
+ * that match one of the pattern listed in the clean_exceptions list.
+ *
+ * This field default to an empty list if not set.
+ */
+clean_exceptions = [ string ];

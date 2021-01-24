@@ -1,0 +1,43 @@
+/*
+ *	aegis - project change supervisor
+ *	Copyright (C) 1994, 1995, 2001, 2006-2008 Peter Miller
+ *
+ *	This program is free software; you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License as published by
+ *	the Free Software Foundation; either version 3 of the License, or
+ *	(at your option) any later version.
+ *
+ *	This program is distributed in the hope that it will be useful,
+ *	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU General Public License for more details.
+ *
+ *	You should have received a copy of the GNU General Public License
+ *	along with this program. If not, see
+ *	<http://www.gnu.org/licenses/>.
+ */
+
+auto p, ps, name, cmnt;
+p = project[project_name()];
+title("The Project Administrator Report", sprintf("Project \"%s\"", p.name));
+ps = p.state.branch;
+if (terse())
+{
+	columns({ name = "Login\n--------"; right = 0; });
+	for (name in sort(ps.administrator))
+		print(name);
+}
+else
+{
+	columns
+	(
+		{ name = "Login\n--------"; width = 8; },
+		{ name = "Full Name\n-----------"; right = 0; padding = 2; }
+	);
+	for (name in sort(ps.administrator))
+	{
+		try { cmnt = passwd[name].pw_comment; }
+			catch (cmnt) { cmnt = ""; }
+		print(name, cmnt);
+	}
+}

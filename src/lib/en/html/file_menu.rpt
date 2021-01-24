@@ -1,0 +1,449 @@
+/*
+ *	aegis - project change supervisor
+ *	Copyright (C) 1997, 1998, 2002-2008 Peter Miller
+ *
+ *	This program is free software; you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License as published by
+ *	the Free Software Foundation; either version 3 of the License, or
+ *	(at your option) any later version.
+ *
+ *	This program is distributed in the hope that it will be useful,
+ *	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU General Public License for more details.
+ *
+ *	You should have received a copy of the GNU General Public License
+ *	along with this program. If not, see
+ *	<http://www.gnu.org/licenses/>.
+ */
+
+auto script_name;
+script_name = getenv("SCRIPT_NAME");
+if (script_name == "")
+    script_name = "http://localhost/cgi-bin/aegis.cgi";
+auto pn;
+pn = project_name();
+
+auto fn;
+if (count(arg))
+    fn = arg[0];
+else
+    fn = "aegis.conf";
+
+columns({width = 1000; });
+print("Content-Type: text/html");
+print("");
+print("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\"");
+print("                      \"http://www.w3.org/TR/REC-html40/loose.dtd\">");
+
+print("<html><head>");
+print("<meta name=\"ROBOTS\" content=\"NOINDEX, NOFOLLOW\">");
+print("<meta name=\"GENERATOR\" content=\"" ## script_name ## "\">");
+print("<meta http-equiv=\"Content-Type\" "
+    ## "content=\"text/html; charset=ISO-8859-1\">");
+print("<style type=\"text/css\"> "
+    ## "tr.even-group { background-color: #CCCCCC; } "
+    ## "body { background-color: white; } "
+    ## "</style>");
+/*
+ * Netscape 4.x has numerous CSS bugs, two of which need mentioning.
+ * 1. If a style sheet is not present Netscape says 404 Not found, when
+ * it should silently ignore it.  2. Style sheets who's media is not
+ * "screen" will be ignored.  Fortunately we can use (2) to get around (1).
+ */
+print("<link rel=\"stylesheet\" type=\"text/css\" href=\"/aedefault.css\" "
+    ## "media=\"all\">");
+auto stack, depth, n;
+depth=0;
+stack[depth] = project[pn].state.name;
+while ("" != (n = project[stack[depth]].state.parent_name))
+{
+    stack[++depth] = n;
+}
+while (depth >= 0)
+{
+    print("<link rel=\"stylesheet\" type=\"text/css\" href=\"/" ##
+	stack[depth--] ## ".css\" " ## "media=\"all\">");
+}
+print("<title>");
+
+print("Project " ## quote_html(pn) ## ",");
+print("File Menu");
+print("</title></head><body><h1 align=center>");
+
+auto href;
+print("<a href=\"" ## script_name ## "\">Project</a>");
+auto long_project_name;
+auto prj_name_parts;
+prj_name_parts = split(pn, '.');
+href = script_name ## "?file@proj_menu+project@"
+    ## quote_url(prj_name_parts[0]);
+long_project_name = "<a href=\"" ## href ## "\" >"
+    ## quote_html(prj_name_parts[0]) ## "</a>";
+auto j;
+for (j = 1; j < count(prj_name_parts); j++)
+{
+    href ##= '.' ## prj_name_parts[j];
+    long_project_name ##= ".<a href=\"" ## href ## "\" >"
+    	## quote_html(prj_name_parts[j]) ## "</a>";
+};
+long_project_name = "&ldquo;" ## long_project_name ## "&rdquo;,<br>";
+/* HTTP limits lines to 510 characters */
+for (j in wrap(long_project_name, 510))
+    print(j);
+
+auto  ps;
+ps = project[pn].state.branch;
+
+auto cn, cs;
+if (change_number_set())
+{
+    cn = change_number();
+    cs = ps.change[cn];
+}
+
+print("File &ldquo;" ## quote_html(fn) ## "&rdquo;");
+print("</h1>");
+
+print("<div class=\"information\">");
+print("<dl>");
+
+print("<dt>");
+href = script_name ## "?file@file_activ+" ## quote_url(fn);
+href ##= "+project@" ## quote_url(pn);
+if (change_number_set())
+    href ##= "+change@" ## cn;
+print("<a href=\"" ## href ## "\">File Activity</a>");
+print("<dd>");
+print("This item will provide you with a listing of changes which are");
+print("actively modifying this file.  The list includes who is working");
+print("on the changes, and a brief description of each change.  Where a");
+print("file is common to more than one change, all changes are listed");
+print("against the file.");
+
+print("<dt>");
+href = script_name ## "?file@file_cflct+" ## quote_url(fn);
+href ##= "+project@" ## quote_url(pn);
+if (change_number_set())
+    href ##= "+change@" ## cn;
+print("<a href=\"" ## href ## "\">File Conflict</a>");
+print("<dd>");
+print("This item will provide you with a listing of changes which are");
+print("actively modifying this file <strong>if</strong> more than");
+print("<em>one</em> change is modifying the file.");
+
+href = script_name ## "?file@file_hstry+" ## quote_url(fn);
+href ##= "+project@" ## quote_url(pn);
+print("<dt><a href=\"" ## href ## "\">");
+print("File History");
+print("</a><dd>");
+print("This item will provide you with a listing of all completed");
+print("changes which affected this file in the past.  This report");
+print("can take a long time to generate.");
+
+auto tps;
+tps = project[pn].state;
+auto i;
+auto deleted_by;
+deleted_by = "";
+for (i in tps.src)
+{
+    if (i.file_name == fn)
+    {
+	deleted_by=i.deleted_by;
+	break;
+    }
+}
+
+auto action;
+action="";
+for (i in cs.src)
+{
+    if (i.file_name == fn)
+    {
+	action = i.action;
+	break;
+    }
+}
+
+auto baseline_file_exists;
+baseline_file_exists = false;
+print("<dt>");
+if (deleted_by != "")
+{
+    print("Baseline");
+    print("<dd>");
+    print("The file no longer exists in the baseline.");
+    href = script_name ## "?file@chan_menu";
+    href ##= "+project@" ## quote_url(pn);
+    href ##= "+change@" ## deleted_by;
+
+    print("It was deleted in change ");
+    print("<a href=\"" ## href  ## "\">" ## deleted_by ## "</a>");
+}
+else if (change_number_set() && cs.state != "completed" && action == "create")
+{
+    print("Baseline");
+    print("<dd>");
+    print("The file does not yet exist in the baseline.");
+    print("It is created by this change, which is not yet integrated");
+}
+else
+{
+    href = script_name ## "?file@pre+" ## quote_url(fn);
+    href ##= "+project@" ## quote_url(pn);
+    print("<a href=\"" ## href ## "\">Baseline</a>");
+    print("<dd>");
+    print("This item will show you the contents of the file in the project");
+    print("baseline, the <strong>current</strong> master version.");
+    baseline_file_exists = true;
+}
+
+if (change_number_set())
+{
+    if (cs.state != "completed")
+    {
+	print("<dt>");
+	href = script_name ## "?file@pre+" ## quote_url(fn);
+	href ##= "+project@" ## quote_url(pn);
+	href ##= "+change@" ## cn;
+	print("<a href=\"" ## href ## "\">Change " ##
+	    change_number() ## "</a>");
+	print("<dd>");
+	print("This item will show you the contents of the file");
+	print("in change " ## cn ## ".");
+    }
+    else
+    {
+	auto delta;
+	delta=cs.delta_number;
+
+	if (action == "create")
+	{
+	    print("<dt>");
+	    print("Pre Change " ## cn);
+	    print("<dd>");
+	    print("The file did not exist prior to this change.");
+	}
+	else
+	{
+	    auto d;
+	    d = delta -1;
+	    print("<dt>");
+	    href = script_name ## "?file@pre+" ## "delta@" ## d ## "+";
+	    href ##= quote_url(fn);
+	    href ##= "+project@" ## quote_url(pn);
+	    print("<a href=\"" ## href ## "\">Pre Change " ##
+		change_number() ## "</a>");
+	    print("<dd>");
+	    print("This item will show you the how the contents of the file");
+	    print("in the project baseline looked <strong>before</strong>");
+	    print("change " ## cn ## " was integrated.");
+	}
+
+	print("<dt>");
+	if (action != "remove")
+	{
+	    href = script_name ## "?file@pre+" ## "delta@" ## delta ## "+";
+	    href ##= quote_url(fn);
+	    href ##= "+project@" ## quote_url(pn);
+	    print("<a href=\"" ## href ## "\">Post Change " ##
+		change_number() ## "</a>");
+	    print("<dd>");
+	    print("This item will show you the how the contents of the file");
+	    print("in the project baseline looked <strong>after</strong>");
+	    print("change " ## cn ## " was integrated.");
+	}
+	else
+	{
+	    print("Post Change " ## change_number());
+	    print("<dd>");
+	    print("The file was removed from the project in this change.");
+	}
+    }
+    if (cs.state != "awaiting_development")
+    {
+	auto pre_d, post_d;
+	pre_d = delta -1;
+	post_d = delta;
+
+	print("<dt>File Differences</dt>");
+	print("<dd>This item will show you differences between the various");
+	print("versions of the file.");
+	print("<table align=center>");
+	print("<tr>");
+	print("<td></td>");
+
+	if (cs.state == "completed")
+	{
+	    if (action != "create")
+		print("<td width=\"100\" align=\"center\">Before</td>");
+	    if (action != "remove")
+		print("<td width=\"100\" align=\"center\">After</td>");
+	}
+	else
+	    print("<td width=\"100\" align=\"center\">Change</td>");
+
+	if (baseline_file_exists)
+	{
+	    print("<td width=\"100\" align=\"center\">Baseline</td>");
+	}
+
+	print("</tr>");
+
+	if (cs.state == "completed")
+	{
+	    if (action != "create")
+	    {
+		print("<tr>");
+		print("<td>Before</td>");
+		print("<td align=\"center\">*</td>");
+
+		if (action != "remove")
+		{
+		    href = script_name ## "?file@diff+";
+		    href ##= "delta1@" ## pre_d ## "+";
+		    href ##= "delta2@" ## post_d ## "+";
+		    href ##= quote_url(fn);
+		    href ##= "+project@" ## quote_url(pn);
+
+		    print("<td align=\"center\"><a href=\"" ## href ##
+			"\">diff</a></td>");
+		}
+		if (baseline_file_exists)
+		{
+		    href = script_name ## "?file@diff+";
+		    href ##= "delta1@" ## pre_d ## "+";
+		    href ##= "delta2@" ## "baseline" ## "+";
+		    href ##= quote_url(fn);
+		    href ##= "+project@" ## quote_url(pn);
+		    print("<td align=\"center\"><a href=\"" ## href ##
+			"\">diff</a></td>");
+		}
+		print("</tr>");
+	    }
+	    if (action != "remove")
+	    {
+		print("<tr>");
+		print("<td>After</td>");
+		if (action != "create")
+		{
+		    href = script_name ## "?file@diff+";
+		    href ##= "delta1@" ## post_d ## "+";
+		    href ##= "delta2@" ## pre_d ## "+";
+		    href ##= quote_url(fn);
+		    href ##= "+project@" ## quote_url(pn);
+		    print("<td align=\"center\"><a href=\"" ## href ##
+			"\">diff</a></td>");
+	       	}
+		print("<td align=\"center\">*</td>");
+		if (baseline_file_exists)
+		{
+		    href = script_name ## "?file@diff+";
+		    href ##= "delta1@" ## post_d ## "+";
+		    href ##= "delta2@" ## "baseline" ## "+";
+		    href ##= quote_url(fn);
+		    href ##= "+project@" ## quote_url(pn);
+		    print("<td align=\"center\"><a href=\"" ## href ##
+			"\">diff</a></td>");
+	       	}
+		print("</tr>");
+	    }
+	}
+	if (cs.state != "completed")
+	{
+	    print("<tr>");
+	    print("<td>Change</td>");
+	    print("<td align=\"center\">*</td>");
+
+	    if (baseline_file_exists)
+	    {
+		href = script_name ## "?file@diff+";
+		href ##= "delta1@" ## "change" ## "+";
+		href ##= "delta2@" ## "baseline"  ## "+";
+		href ##= quote_url(fn);
+		href ##= "+project@" ## quote_url(pn);
+		href ##= "+change@" ## change_number();
+
+		print("<td align=\"center\"><a href=\"" ## href ##
+		    "\">diff</a></td>");
+	    }
+	    print("</tr>");
+	}
+
+	if (baseline_file_exists)
+	{
+	    print("<tr>");
+	    print("<td>Baseline</td>");
+
+	    if (cs.state == "completed")
+	    {
+		if (action != "create")
+		{
+		    href = script_name ## "?file@diff+";
+		    href ##= "delta1@" ## "baseline" ## "+";
+		    href ##= "delta2@" ## pre_d  ## "+";
+		    href ##= quote_url(fn);
+		    href ##= "+project@" ## quote_url(pn);
+		    print("<td align=\"center\"><a href=\"" ## href ##
+			"\">diff</a></td>");
+		}
+		href = script_name ## "?file@diff+";
+		href ##= "delta1@" ## "baseline" ## "+";
+		href ##= "delta2@" ## post_d ## "+";
+		href ##= quote_url(fn);
+		href ##= "+project@" ## quote_url(pn);
+		print("<td align=\"center\"><a href=\"" ## href ##
+		    "\">diff</a></td>");
+	    }
+	    else
+	    {
+		href = script_name ## "?file@diff+";
+		href ##= "delta1@" ## "baseline" ## "+";
+		href ##= "delta2@" ## "change"  ## "+";
+		href ##= quote_url(fn);
+		href ##= "+project@" ## quote_url(pn);
+		href ##= "+change@" ## change_number();
+
+		print("<td align=\"center\"><a href=\"" ## href ##
+		    "\">diff</a></td>");
+	    }
+
+	    print("<td align=\"center\">*</td>");
+	    print("</tr>");
+	}
+	print("</table>");
+	print("</dd>");
+    }
+}
+
+print("</dl>");
+print("</div>");
+
+print("<hr>");
+print("<p align=center class=\"navbar\">[");
+print("<a href=\"" ## script_name ## "\">Project List</a> |");
+href = script_name ## "?file@proj_menu+project@" ## quote_url(pn);
+print("<a href=\"" ## href ## "\">Project Menu</a> |");
+href = script_name ## "?file@changes+project@" ## quote_url(pn);
+print("<a href=\"" ## href ## "\">Change List</a> |");
+if (change_number_set())
+{
+    href = script_name ## "?file@chan_menu+project@" ## quote_url(pn)
+	## "+change@" ## cn ;
+    print("<a href=\"" ## href ## "\">Change Menu</a> |");
+    href = script_name ## "?file@file_list+project@" ## quote_url(pn)
+	## "+change@" ## cn ;
+    print("<a href=\"" ## href ## "\">File List</a>");
+
+}
+else
+{
+	href = script_name ## "?file@file_list+project@" ## quote_url(pn);
+	print("<a href=\"" ## href ## "\">File List</a>");
+}
+print("]</p>");
+
+print("<hr>");
+print("This page was generated " ## now() ## ".");
+print("</body></html>");

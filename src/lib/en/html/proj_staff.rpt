@@ -1,0 +1,247 @@
+/*
+ *	aegis - project change supervisor
+ *	Copyright (C) 1997, 1998, 2000-2003, 2005-2008 Peter Miller
+ *
+ *	This program is free software; you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License as published by
+ *	the Free Software Foundation; either version 3 of the License, or
+ *	(at your option) any later version.
+ *
+ *	This program is distributed in the hope that it will be useful,
+ *	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU General Public License for more details.
+ *
+ *	You should have received a copy of the GNU General Public License
+ *	along with this program. If not, see
+ *	<http://www.gnu.org/licenses/>.
+ */
+
+auto script_name;
+script_name = getenv("SCRIPT_NAME");
+if (script_name == "")
+	script_name = "http://localhost/cgi-bin/aegis.cgi";
+
+auto pn;
+pn = project_name();
+
+columns({width = 1000; });
+print("Content-Type: text/html");
+print("");
+print("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0 Transitional//EN\""
+	## "\"http://www.w3.org/TR/REC-html40/loose.dtd\">");
+print("<html><head>");
+print("<meta name=\"ROBOTS\" content=\"NOINDEX, NOFOLLOW\">");
+print("<meta name=\"GENERATOR\" content=\"" ## script_name ## "\">");
+print("<meta http-equiv=\"Content-Type\" "
+	## "content=\"text/html; charset=ISO-8859-1\">");
+print("<style type=\"text/css\"> "
+	## "tr.even-group { background-color: #CCCCCC; } "
+	## "body { background-color: white; } "
+	## "</style>");
+/*
+ * Netscape 4.x has numerous CSS bugs, two of which need mentioning.
+ * 1. If a style sheet is not present Netscape says 404 Not found, when
+ * it should silently ignore it.  2. Style sheets who's media is not
+ * "screen" will be ignored.  Fortunately we can use (2) to get around (1).
+ */
+print("<link rel=\"stylesheet\" type=\"text/css\" href=\"/aedefault.css\" "
+	## "media=\"all\">");
+auto stack, depth, bn;
+depth=0;
+stack[depth] = project[pn].state.name;
+while ("" != ( bn = project[stack[depth]].state.parent_name )) {
+  stack[++depth] = bn;
+}
+while ( depth >= 0) {
+    print("<link rel=\"stylesheet\" type=\"text/css\" href=\"/" ##
+	 stack[depth--] ## ".css\" " ## "media=\"all\">");
+}
+print("<title>");
+print("Project " ## quote_html(pn) ## ", Staff");
+print("</title></head><body><h1 align=center>");
+
+auto href;
+print("<a href=\"" ## script_name ## "\">Project</a>");
+auto long_project_name;
+auto prj_name_parts;
+prj_name_parts = split(pn, '.');
+href = script_name ## "?file@proj_menu+project@"
+	## quote_url(prj_name_parts[0]);
+long_project_name = "<a href=\"" ## href ## "\" >"
+	## quote_html(prj_name_parts[0]) ## "</a>";
+auto j;
+for (j = 1; j < count(prj_name_parts); j++)
+{
+    href ##= '.' ## prj_name_parts[j];
+    long_project_name ##= ".<a href=\"" ## href ## "\" >"
+    	## quote_html(prj_name_parts[j]) ## "</a>";
+};
+long_project_name = "&ldquo;" ## long_project_name ## "&rdquo;,<br>";
+/* HTTP limits lines to 510 characters */
+for (j in wrap(long_project_name, 510))
+    print(j);
+
+print("List of Staff");
+print("</h1>");
+print("<div class=\"information\">");
+
+auto p, ps, name, staff;
+p = project[pn];
+ps = p.state.branch;
+for (name in ps.developer)
+    staff[name].developer = true;
+for (name in ps.reviewer)
+    staff[name].reviewer = true;
+for (name in ps.integrator)
+    staff[name].integrator = true;
+for (name in ps.administrator)
+    staff[name].administrator = true;
+
+auto cn, cs, h;
+for (cn in keys(ps.change))
+{
+    cs = ps.change[cn];
+    for (h in cs.history)
+    {
+       	if (h.what == new_change)
+	    staff[h.who].administrator_count++;
+       	else if (h.what == develop_begin)
+       	{
+	    staff[h.who].developer_count++;
+	    if (h.forced != "")
+	     	staff[h.forced].administrator_count++;
+       	}
+       	else if (h.what == review_pass || h.what == review_fail)
+	    staff[h.who].reviewer_count++;
+       	else if (h.what == integrate_begin)
+	    staff[h.who].integrator_count++;
+    }
+}
+
+auto n, s, developer_max, reviewer_max, integrator_max, administrator_max;
+developer_max = 1;
+reviewer_max = 1;
+integrator_max = 1;
+administrator_max = 1;
+for (name in keys(staff))
+{
+    s = staff[name];
+    if (s.developer_count > developer_max)
+       	developer_max = s.developer_count;
+    if (s.reviewer_count > reviewer_max)
+       	reviewer_max = s.reviewer_count;
+    if (s.integrator_count > integrator_max)
+       	integrator_max = s.integrator_count;
+    if (s.administrator_count > administrator_max)
+       	administrator_max = s.administrator_count;
+}
+developer_max = 50.0 / developer_max;
+reviewer_max = 50.0 / reviewer_max;
+integrator_max = 50.0 / integrator_max;
+administrator_max = 50.0 / administrator_max;
+
+print("<table align=center>");
+print("<tr class=\"even-group\"><th>User</th>");
+print("<th align=left colspan=3>Developer</th>");
+print("<th align=left colspan=3>Reviewer</th>");
+print("<th align=left colspan=3>Integrator</th>");
+print("<th align=left colspan=3>Administrator</th></tr>");
+
+auto rownum;
+rownum = 0;
+for (name in sort(keys(staff)))
+{
+    if (rownum++ % 6 < 3)
+	print("<tr class=\"odd-group\">");
+    else
+	print("<tr class=\"even-group\">");
+    s = staff[name];
+    print("<td valign=top>");
+    auto email, long_name;
+    email = name;
+    try { email = user[name].email_address; }
+    catch (email) { email = ""; }
+    if (email == "")
+       	email = name;
+    href = "mailto:" ## email;
+    print("<a href=\"" ## href ## "\">");
+    try { long_name = passwd[name].pw_comment; }
+    catch (long_name) { long_name = name; }
+    print(quote_html(long_name) ## "</a>");
+    print("</td><td valign=top>");
+    print(s.developer ? "Yes" : "No");
+    print("</td><td valign=top align=right>");
+    print(s.developer_count + 0);
+    print("</td><td valign=top>");
+    if (s.developer_count)
+    {
+       	n = round(developer_max * s.developer_count);
+       	if (n < 3)
+	    n = 3;
+       	href = script_name ## "?file@rect+" ## n ## "+12";
+       	print("<img src=\"" ## href ## "\" width="##n##" height=12>");
+    }
+    print("</td><td valign=top>");
+    print(s.reviewer ? "Yes" : "No");
+    print("</td><td valign=top align=right>");
+    print(s.reviewer_count + 0);
+    print("</td><td valign=top>");
+    if (s.reviewer_count)
+    {
+       	n = round(reviewer_max * s.reviewer_count);
+       	if (n < 3)
+	    n = 3;
+       	href = script_name ## "?file@rect+" ## n ## "+12";
+	    print("<img src=\"" ## href ## "\" width="##n##" height=12>");
+    }
+    print("</td><td valign=top>");
+    print(s.integrator ? "Yes" : "No");
+    print("</td><td valign=top align=right>");
+    print(s.integrator_count + 0);
+    print("</td><td valign=top>");
+    if (s.integrator_count)
+    {
+       	n = round(integrator_max * s.integrator_count);
+       	if (n < 3)
+	    n = 3;
+       	href = script_name ## "?file@rect+" ## n ## "+12";
+       	print("<img src=\"" ## href ## "\" width="##n##" height=12>");
+    }
+    print("</td><td valign=top>");
+    print(s.administrator ? "Yes" : "No");
+    print("</td><td valign=top align=right>");
+    print(s.administrator_count + 0);
+    print("</td><td valign=top>");
+    if (s.administrator_count)
+    {
+       	n = round(administrator_max * s.administrator_count);
+       	if (n < 3)
+	    n = 3;
+       	href = script_name ## "?file@rect+" ## n ## "+12";
+       	print("<img src=\"" ## href ## "\" width="##n##" height=12>");
+    }
+    print("</td></tr>");
+}
+print("<tr><td colspan=5>");
+print("Listed " ## count(keys(staff)) ## " staff.");
+print("</td></tr>");
+print("</table>");
+print("</div>");
+
+print("<hr>");
+print("<div class=\"report-cmd\">");
+print("A similar report may be obtained from the command line, with");
+print("<blockquote><samp>aer proj_staff -p " ## pn ## "</samp></blockquote>");
+print("</div>");
+
+print("<hr>");
+print("<p align=center class=\"navbar\">[");
+print("<a href=\"" ## script_name ## "\">Project List</a> |");
+href = script_name ## "?file@proj_menu+project@" ## quote_url(pn);
+print("<a href=\"" ## href ## "\">Project Menu</a>");
+print("]</p>");
+
+print("<hr>");
+print("This page was generated " ## now() ## ".");
+print("</body></html>");

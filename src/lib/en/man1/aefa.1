@@ -1,0 +1,165 @@
+'\" t
+.\"     aegis - project change supervisor
+.\"     Copyright (C) 2004, 2006-2008 Peter Miller
+.\"
+.\"     This program is free software; you can redistribute it and/or modify
+.\"     it under the terms of the GNU General Public License as published by
+.\"     the Free Software Foundation; either version 3 of the License, or
+.\"     (at your option) any later version.
+.\"
+.\"     This program is distributed in the hope that it will be useful,
+.\"     but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\"     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\"     GNU General Public License for more details.
+.\"
+.\"     You should have received a copy of the GNU General Public License
+.\"     along with this program. If not, see
+.\"     <http://www.gnu.org/licenses/>.
+.\"
+.so z_name.so
+.TH "\*(n) -File_ATtributes" 1 \*(N) "Reference Manual"
+.SH NAME
+\*(n) -File_ATtributes \- modify the attributes of a file
+.XX "aefa(1)" "modify the attributes of a file"
+.SH SYNOPSIS
+.B \*(n)
+.B -File_ATtributes
+.B -File
+.I attr-file
+[
+.IR option ...
+]
+.I filename
+.br
+.B \*(n)
+.B -File_ATtributes
+.B -Edit
+[
+.IR option ...
+]
+.I filename
+.br
+.B \*(n)
+.B -File_ATtributes
+[
+.IR option ...
+]
+\fIname\fP\fB=\fP\fIvalue\fP
+.I filename
+.br
+.B \*(n)
+.B -File_ATtributes
+.B -UUID \f[I]number\f[P]
+.B -File \f[I]filename\f[P]
+.br
+.B \*(n)
+.B -File_ATtributes
+.B -Help
+.SH DESCRIPTION
+The
+.I \*(n)
+.I -File_ATtributes
+command is used to set, edit or list the attributes of a file.
+.PP
+The output of the
+.B -List
+variant is suitable for use as input at a later time.
+.PP
+See
+.IR aefattr (5)
+for a description of the file format.
+.PP
+Attribute names are not case sensitive.  File attributes with a name
+starting with an upper case letter will appear in \fIael\fP(1) and
+\fIaeget\fP(1) listings, while those starting with a lower case letter
+will not.
+.SS Shorthand
+If you are only setting the values of unique attributes, it is possible
+to do this from the command line, using the \fIname\fP\fB=\fP\fIvalue\fP
+form.
+.PP
+Note that this usage will replace the first attribute with the given name.  If
+there is more than one attribute of that name, the second and subsequent
+attributes are unchanged.  If there is no attribute of the given name,
+it will be appended.
+.PP
+You may set more than one attribute at a time, provided that
+their names are unique.  Attribute names are not case sensitive.
+.SS Known Attribute Names
+While many of the anticipated uses of file attributes are to allow
+projects to attach their own specialized data to individual files, Aegis
+also uses some attributes for its own purposes (and arguably, should
+always have done so to maximize forwards compatibility across Aegis
+upgrades).
+.TP 8n
+content-type
+This is taken directly from the MIME definition of Content-Type.
+It remembers what sort of file this is.  It is anticipated that a
+\fIdiff\fP tool, for example, could make use of this attribute to
+provide format-specific file difference listings.  Some change set
+interchange formats are capable of carrying this information.
+.TP 8n
+entire-source-hide
+boolean.  If true, this file is not included by the \fIaedist \-entire-source\fP
+flag.  The \fIaetar\fP and \fIaerevml\fP commands work similarly.
+Think of it as a "local only" flag.
+.TP 8n
+foreign-copyright
+boolean.  If true, this file will not be checked by the
+\fIaede-policy\fP(1) \f[CW]copyright\fP validation.
+.TP 8n
+aede-policy-tabs-allowed
+boolean.
+If true, the \fIno-tabs\fP policy of the \fIaede-policy\fP(1) command
+does not apply.
+.TP 8n
+aede-policy-line-length
+integer.
+The maximum allowed line length in the \fIline-length\fP policy of the
+\fIaede-policy\fP(1) command; infinity if 0.
+.TP 8n
+local-source-hide
+boolean.  If true, this file is not included by \fIaedist\fP
+change sets.  The \fIaetar\fP and \fIaerevml\fP commands work similarly.
+Change sets which contain \f[I]only\fP thee files will be omitted
+from the \f[I]aedist \-inventory\fP output.
+Think of it as a "local only" flag.
+.SH OPTIONS
+The following options are understood:
+.so o_baserel.so
+.so o_change.so
+.so o_help.so
+.so o_list.so
+.so o_project.so
+.so o_terse.so
+\f[B]-Universal_Unique_IDentifier\f[P] \f[I]number\f[P]
+This option may be used to set the UUID of a file.
+.so o_verbose.so
+.so o_wait.so
+.so o__rules.so
+.SH RECOMMENDED ALIAS
+The recommended alias for this command is
+.nf
+.ta 8n 16n
+csh%    alias aefa '\*(n) -fat \e!* -v'
+sh$     aefa(){\*(n) -fat "$@" -v}
+.fi
+.SH ERRORS
+It is an error if the current user is not an administrator of the
+specified project.
+.br
+It is an error if the current user is not the developer of the specified
+change.
+.br
+It is an error if the file is not included in the specified change.
+.so z_exit.so
+.br
+.ne 1i
+.SH SEE ALSO
+.TP 8n
+.IR aeca (5)
+modify the attributes of a change
+.TP 8n
+.IR aefattr (5)
+file attributes file format
+.so z_cr.so

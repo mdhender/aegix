@@ -1,0 +1,58 @@
+/*
+ *	aegis - project change supervisor
+ *	Copyright (C) 1994-1996, 2000, 2005-2008 Peter Miller
+ *
+ *	This program is free software; you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License as published by
+ *	the Free Software Foundation; either version 3 of the License, or
+ *	(at your option) any later version.
+ *
+ *	This program is distributed in the hope that it will be useful,
+ *	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU General Public License for more details.
+ *
+ *	You should have received a copy of the GNU General Public License
+ *	along with this program. If not, see
+ *	<http://www.gnu.org/licenses/>.
+ */
+
+auto name, p;
+title("The Projects Report");
+if (terse())
+{
+	columns({ name = "Project\n-------"; right = 0; });
+	for (name in sort(keys(project)))
+		print(name);
+}
+else
+{
+	columns
+	(
+		{ name = "Project\n-------"; width = 15; },
+		{ name = "Directory\n-----------"; width = 23; },
+		{ name = "Description\n-------------"; right = 0; }
+	);
+	for (name in sort(keys(project)))
+	{
+		p = project[name];
+
+		/*
+		 * Reading the p.state value (it is deferred) may result
+		 * in "permision denied" so we need to catch the
+		 * exception as it goes past.  Use the error as the
+		 * description.
+		 */
+		auto description;
+		if (p.error != "")
+		    description = p.error;
+		else
+		{
+			try
+				description = p.state.description;
+			catch (description)
+				;
+		}
+		print(name, p.directory, description);
+	}
+}

@@ -1,0 +1,44 @@
+/*
+ *	aegis - project change supervisor
+ *	Copyright (C) 2000, 2002, 2006, 2008 Peter Miller
+ *
+ *	This program is free software; you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License as published by
+ *	the Free Software Foundation; either version 3 of the License, or
+ *	(at your option) any later version.
+ *
+ *	This program is distributed in the hope that it will be useful,
+ *	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU General Public License for more details.
+ *
+ *	You should have received a copy of the GNU General Public License
+ *	along with this program. If not, see
+ *	<http://www.gnu.org/licenses/>.
+ *
+ * Missing rows are taken to mean that the test was not run.
+ *
+ * If this file is changed, don't forget to update lib/??/man5/aetest.5
+ */
+
+test_result =
+[
+	{
+		/*
+		 * The name of the file containing the test.
+		 */
+		file_name = string;
+
+		/*
+		 * The exit status of running the test file.
+		 */
+		exit_status = integer;
+
+		/*
+		 * The architecture name to which the result applies.
+		 * If not set, defaults to the architecture of the
+		 * executing system.
+		 */
+		architecture = string;
+	}
+];

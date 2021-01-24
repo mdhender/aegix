@@ -1,0 +1,39 @@
+'\" t
+.\"	aegis - project change supervisor
+.\"	Copyright (C) 1998, 2006-2008 Peter Miller
+.\"
+.\"	This program is free software; you can redistribute it and/or modify
+.\"	it under the terms of the GNU General Public License as published by
+.\"	the Free Software Foundation; either version 3 of the License, or
+.\"	(at your option) any later version.
+.\"
+.\"	This program is distributed in the hope that it will be useful,
+.\"	but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\"	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\"	GNU General Public License for more details.
+.\"
+.\"	You should have received a copy of the GNU General Public License
+.\"	along with this program. If not, see
+.\"	<http://www.gnu.org/licenses/>.
+.\"
+.so z_name.so
+.TH aemetrics 5 \*(N) "Reference Manual" ""
+.SH NAME
+aemetrics \- metrics values file format
+.XX "aemetrics(5)" "metrics values file format"
+.SH SYNOPSIS
+\fIfilename\fP\f(CW,S\fP
+.SH DESCRIPTION
+Metrics files are created at integration build time,
+and recorded into the file attributes at integration pass time.
+This allows trend analysis and other statistics to be calculated.
+.SH CONTENTS
+.so aemetrics.so
+.SH SEE ALSO
+.TP 8n
+.IR aegis (5)
+\*(n) file format syntax
+.TP 8n
+.IR aemeasure (1)
+simple file metrics
+.so ../man1/z_cr.so

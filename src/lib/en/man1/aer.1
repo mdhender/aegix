@@ -1,0 +1,124 @@
+'\" t
+.\"	aegis - project change supervisor
+.\"	Copyright (C) 1994, 1999, 2001, 2002, 2006-2008 Peter Miller
+.\"
+.\"	This program is free software; you can redistribute it and/or modify
+.\"	it under the terms of the GNU General Public License as published by
+.\"	the Free Software Foundation; either version 3 of the License, or
+.\"	(at your option) any later version.
+.\"
+.\"	This program is distributed in the hope that it will be useful,
+.\"	but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\"	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\"	GNU General Public License for more details.
+.\"
+.\"	You should have received a copy of the GNU General Public License
+.\"	along with this program. If not, see
+.\"	<http://www.gnu.org/licenses/>.
+.\"
+.so z_name.so
+.so libdir.so
+.ds n) aereport
+.TH "\*(n) -RePorT" 1 \*(N) "Reference Manual"
+.SH NAME
+\*(n) -RePorT \- report generator
+.XX "aer(1)" "report generator"
+.SH SYNOPSIS
+.B \*(n)
+[
+.IR option \&...
+]
+.IR report-name
+.br
+.B \*(n)
+[
+.IR option \&...
+]
+.B -File
+.IR filename
+.br
+.B \*(n)
+.B -RePorT
+.B -List
+.br
+.B \*(n)
+.B -Help
+.br
+.B \*(n)
+.B -VERSion
+.SH DESCRIPTION
+The
+.I \*(n)
+command is used to
+generate reports from \*(n)' database.
+Reports are specified in a C-like language
+described in the
+.IR aer (5)
+manual entry.
+.PP
+For a list of the reports available on your system,
+use the '\fIaer -list\fP' command.
+These reports live in the
+.I \*(D)/report
+directory,
+and it initially contains the reports distributed with \*(n),
+however sites are free to add their own here.
+.SH WRITING REPORT SCRIPTS
+Getting started writing report scripts can be difficult.  You are best to
+have a look at the reports distributes with Aegis, and try to adapt them.
+The report script files are kept in the \fI\*(D)/report\fP directory.
+.PP
+For information about the data structures which may be accessed from a
+report script, you need to see the relevant manual entries:
+.TP 8n
+the projects list
+See \fIaegstate\fP(1) for the member fields.
+.TP 8n
+a specific project
+See \fIaepstate\fP(1) for the member fields.
+.TP 8n
+a specific change
+See \fIaecstate\fP(1) for the member fields.
+.TP 8n
+a specific file
+See \fIaefstate\fP(1) for the member fields.
+.PP
+Each of the above man pages also contains a section towards the end which
+specifically addresses report generator use, usually with code fragments.
+.SH OPTIONS
+The following options are understood:
+.so o_baselin.so
+.so o_branch.so
+.so o_change.so
+.so o_delta.so
+.TP 8n
+\fB-File\fP \fIfilename\fP
+.br
+Take the report script from the specified file, rather than looking for
+the named report in the library of reports distributed with \*(N).
+The filename \[lq]\-\[rq] is understood to mean the standard input.
+.so o_help.so
+.so o_list.so
+.so o_output.so
+.so o_project.so
+.so o_terse.so
+.so o_trunk.so
+.so o_unforma.so
+.so o_verbose.so
+.so o__rules.so
+.SH RECOMMENDED ALIAS
+The recommended alias for this command is
+.nf
+.ta 8n 16n
+csh%    alias aer '\*(n) \e!* -v'
+sh$     aer(){\*(n) "$@" -v}
+.fi
+.SH SEE ALSO
+.TP 8n
+.IR ael (1)
+list (possibly) interesting things
+.TP 8n
+.IR aer (5)
+report script language definition
+.so z_exit.so
+.so z_cr.so

@@ -1,0 +1,255 @@
+'\" tp
+.\"	aegis - project change supervisor
+.\"	Copyright (C) 1991-2008 Peter Miller
+.\"
+.\"	This program is free software; you can redistribute it and/or modify
+.\"	it under the terms of the GNU General Public License as published by
+.\"	the Free Software Foundation; either version 3 of the License, or
+.\"	(at your option) any later version.
+.\"
+.\"	This program is distributed in the hope that it will be useful,
+.\"	but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\"	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\"	GNU General Public License for more details.
+.\"
+.\"	You should have received a copy of the GNU General Public License
+.\"	along with this program. If not, see
+.\"	<http://www.gnu.org/licenses/>.
+.\"
+.so z_name.so
+.TH "\*(n) -Integrate_Begin" 1 \*(N) "Reference Manual"
+.SH NAME
+\*(n) -Integrate_Begin \- begin integrating a change
+.XX "aeib(1)" "begin integrating a change"
+.SH SYNOPSIS
+.B \*(n)
+.B -Integrate_Begin
+.I change-number
+[
+.IR option ...
+]
+.br
+.B \*(n)
+.B -Integrate_Begin
+.B -List
+[
+.IR option ...
+]
+.br
+.B \*(n)
+.B -Integrate_Begin
+.B -Help
+.SH DESCRIPTION
+The
+.I \*(n)
+.I -Integrate_Begin
+command is used to
+begin the integration of a change into the baseline of a project.
+.PP
+The change will advance
+from the
+.I "awaiting integration"
+state to the
+.I "being integrated"
+state.
+.\" ------------------------------------------------------------------------
+.PS
+boxwid = 1
+down
+S4: box "awaiting" "integration"
+arrow " integrate" ljust " begin" ljust
+S5: box "being" "integrated"
+T4: spline -> from S5.w then left 0.5 then up 1 then to S4.w
+" integrate" ljust " begin" ljust " undo" ljust at T4.c - (0.5,0)
+.PE
+.\" ------------------------------------------------------------------------
+.PP
+A (logical) copy of the baseline is created in an
+.IR "integration directory"
+and the the files of the change are added to the integration directory.
+The time stamps of files copied from the baseline are preserved,
+time stamps on the files copied from the development directory
+are all set to the time of the beginning of the integration.
+The
+.I "'\*(n) -Change_Directory'"
+command may be used to locate the integration directory.
+The change will be assigned to the current user.
+.PP
+Please note that only regular files and symbolic links are copied
+(linked) from the baseline to the integration directory.  This has
+some implications:
+.IP \(bu 2n
+Special files (devices, named pipes, \fIetc\fP) will not be reproduced
+in the integration directory; you will need to create these as part of
+the build.
+.IP \(bu 2n
+If the case of the \fB-minimum\fP option (see below), only primary source
+files are copied (linked) across.  Derived files (including symbolic
+links) are expected to be created as part of the build.
+.IP \(bu 2n
+If the case of the \fB-minimum\fP option, directories are only created
+when required to hold a file which satisfies the above criteria.  If you
+need special empty directories, or directories which contain only special
+files, or only contain derived files, you need to create them as part of
+the build.
+.PP
+The
+.I link_integration_directory
+field of the
+project
+configuration
+file (see
+.IR aepconf (5)
+for more information) controls whether the copy of the baseline is done
+by copying the files or by creating hard links to the files.  The hard
+links are just one of the constraints on the location of the integration
+directory.  The integrate begin will abort with an error if this copy
+operation fails, e.g. by running out of disk space.  If this should
+happen, the change will remain in the
+.I "awaiting integration"
+state, and the integration directory will be removed.
+.PP
+The change will be assigned a delta number.
+Delta numbers are incremented once for each
+.I "\*(n) -Integrate_Begin"
+command for the project.
+If an integration is subsequently aborted with either the
+.I "\*(n) -Integrate_Begin_Undo"
+or
+.I "\*(n) -Integrate_FAIL"
+command,
+the delta number will not be re-used.
+.PP
+It is not possible to choose the integration directory,
+as there are many constraints upon it,
+including the fact that it must be
+on the same device as the baseline directory,
+and that many UNIX implementations don't allow renaming
+directories up and down the trees.
+The integration directory will be in the project directory,
+and named for the delta number.
+.SS Notification
+On successful completion of this command, the
+\fIintegration_\%begin_\%command\fP field of the project \fIconfig\fP
+file is run, if set.  See \fIaepconf\fP(5) for more information.
+.SH Minimum Integrations
+.\" My thanks to Jerry Pendergraft for this section.
+\*(N) provides a \fBminimum\fP integration capability which may be
+used for various reasons.  The term \fBminimum\fP may be a bit counter
+intuitive.  One might think it means to the \fBminimum\fP amount of
+work, however it actually means use a \fBminimum\fP of files from the
+baseline in populating the \fIdelta\fP directory.  This normally leads
+to actually building everything in the project from sources and, as
+such, might be considered the most robust of builds.
+.PP
+Note that any change which removes a file, whether by
+\fIaerm\fP,
+\fIaemv\fP or
+\fIaemt\fP,
+results in an implicit \fBminimum\fP integration.  This is
+intended to ensure nothing in the project references the removed file.
+.PP
+A project may adopt a policy that a product release should be based on
+a minimum integration.  Such a policy may be a reflection of local
+confidence, or lack thereof, in the project's DMT (Dependency
+Maintenance Tool) or build system.  Or it may be based on a validation
+process wishing to make a simple statement on how the released package
+was produced.
+.PP
+Another, more transient, reason a to require a minimum integration
+might be when upgrading a third party library, compiler or maybe even
+OS level.  Any of these events would signal the need for a minimum
+integration to ensure everything is rebuilt using the new resources.
+.PP
+The cost of a \fBminimum\fP integration varies according to type and
+size of the project.  For very large projects, especially those
+building large numbers of binaries, the cost can be large.  However
+large projects also require significant time to fully populate the
+delta directory.  A minimum integration only copies those files
+under \*(N) control, skipping all \[lq]produced\[rq] files.  In the case
+where a file upon which everything depends is changed, everything will
+be built anyway so the copy of the already built files is a waste of
+time.  This means that sometimes a minimum can be as cheap as a normal
+integration.
+.SS Change Set Attributes
+The follwoing user-defined change set attributes are understood:
+.TP 8n
+integrate-begin-hint
+If this is set to "minimum" or "maximum", it is as if these options
+appeared on the command line.  Only consulted if neither \-minimum nor
+\-maximum appear on the command line.
+.PP
+All other user defined change set attributes are ignored.
+.SH OPTIONS
+The following options are understood:
+.so o_change.so
+.so o_help.so
+.so o_list.so
+.so o_min.so
+.so o_project.so
+.so o_reason2.so
+.so o_terse.so
+.so o_verbose.so
+.so o_wait.so
+.so o__rules.so
+.SH RECOMMENDED ALIAS
+The recommended alias for this command is
+.nf
+.ta 8n 16n
+csh%	alias aeib '\*(n) -ib \e!* -v'
+sh$	aeib(){\*(n) -ib "$@" -v}
+.fi
+.SH ERRORS
+It is an error if
+the change is not in the
+.I "awaiting integration"
+state.
+.br
+It is an error if
+the current user is not an integrator of the project.
+.br
+It is an error if
+there is an integration in progress for the project.
+.br
+It is an error if
+the current user developed the change and the project is configured to
+disallow developers to integrate their own changes (default).
+.br
+It is an error if
+the current user reviewed the change and the project is configured to
+disallow reviewers to integrate their such changes (default).
+.so z_exit.so
+.br
+.ne 1i
+.SH SEE ALSO
+.TP 8n
+.IR aeb (1)
+build a change
+.TP 8n
+.IR aecd (1)
+change directory
+.TP 8n
+.IR aeibu (1)
+reverse the aeib command
+.TP 8n
+.IR aeifail (1)
+fail integration of a change
+.TP 8n
+.IR aeintegratq (1)
+Automate the integration queue.
+.TP 8n
+.IR aeipass (1)
+pass integration of a change
+.TP 8n
+.IR aeni (1)
+add new integrators to a project
+.TP 8n
+.IR aerpass (1)
+pass review of a change
+.TP 8n
+.IR aet (1)
+run tests
+.TP 8n
+.IR aeuconf (5)
+user configuration file format
+.so z_cr.so

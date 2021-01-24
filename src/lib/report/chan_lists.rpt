@@ -1,0 +1,40 @@
+/*
+ *	aegis - project change supervisor
+ *	Copyright (C) 1994, 1997, 2006-2008 Peter Miller
+ *
+ *	This program is free software; you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License as published by
+ *	the Free Software Foundation; either version 3 of the License, or
+ *	(at your option) any later version.
+ *
+ *	This program is distributed in the hope that it will be useful,
+ *	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU General Public License for more details.
+ *
+ *	You should have received a copy of the GNU General Public License
+ *	along with this program. If not, see
+ *	<http://www.gnu.org/licenses/>.
+ */
+title("The Changes Report", sprintf("Project \"%s\"", project_name()));
+columns
+(
+	{ name = "Change\n-------"; width = 7; },
+	{ name = "State\n-------"; width = 15; },
+	{ name = "Description\n-----------"; right = 0; }
+);
+auto ps, cn, cs;
+ps = project[project_name()].state.branch;
+for (cn in sort(keys(ps.change)))
+{
+	cs = ps.change[cn];
+	auto state;
+	state = cs.state;
+	if (state == being_developed || state == being_integrated)
+	{
+		auto who;
+		who = cs.history[count(cs.history)-1].who;
+		state = state ## "\n(" ## who ## ")";
+	}
+	print(sprintf("%4d", cn), state, cs.brief_description);
+}

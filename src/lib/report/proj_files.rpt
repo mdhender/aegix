@@ -1,0 +1,141 @@
+/*
+ *	aegis - project change supervisor
+ *	Copyright (C) 1994-1997, 2001, 2006-2008 Peter Miller
+ *
+ *	This program is free software; you can redistribute it and/or modify
+ *	it under the terms of the GNU General Public License as published by
+ *	the Free Software Foundation; either version 3 of the License, or
+ *	(at your option) any later version.
+ *
+ *	This program is distributed in the hope that it will be useful,
+ *	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU General Public License for more details.
+ *
+ *	You should have received a copy of the GNU General Public License
+ *	along with this program. If not, see
+ *	<http://www.gnu.org/licenses/>.
+ */
+
+auto p, ps, j;
+p = project[project_name()];
+title("The Project File Report", sprintf("Project \"%s\"", p.name));
+ps = p.state.src;
+if (terse())
+{
+	auto cf;
+	cf = [ /* empty */ ];
+	if (change_number_set())
+	{
+		auto cs;
+		cs = p.state.change[change_number()];
+		for (j in cs.src)
+			cf ##= j.file_name;
+	}
+	columns({ name = "File Name\n----------"; right = 0; });
+	for (j in ps)
+	{
+		if
+		(
+			!j.deleted_by
+		&&
+			!j.about_to_be_created_by
+		&&
+			!(j.file_name in cf)
+		)
+			print(j.file_name);
+	}
+}
+else
+{
+	columns
+	(
+		{ name = "Type\n------"; },
+		{ name = "Edit\n------"; width = 12;},
+		{ name = "File Name\n-----------"; right = 0; },
+		{ left = 22; right = 0; },
+		{ left = 22; right = 0; },
+		{ left = 22; right = 0; },
+		{ left = 22; right = 0; },
+		{ left = 22; right = 0; }
+	);
+	for (j in ps)
+	{
+		auto en;
+
+		if (j.edit_origin.revision != "" && j.edit.revision != "")
+		{
+			if (j.edit_origin.revision == j.edit.revision)
+				en = sprintf("%4s", j.edit.revision);
+			else
+			{
+				en =
+					sprintf
+					(
+						"%4s -> %s",
+						j.edit_origin.revision,
+						j.edit.revision
+					);
+			}
+		}
+		else if (j.edit_origin.revision != "")
+			en = sprintf("%4s", j.edit_origin.revision);
+		else if (j.edit.revision != "")
+			en = sprintf("%4s", j.edit.revision);
+
+		print
+		(
+			j.usage,
+			en,
+			j.file_name,
+			(
+				j.deleted_by
+			?
+				sprintf("Deleted by change %d.", j.deleted_by)
+			:
+				""
+			),
+			(
+				j.about_to_be_created_by
+			?
+				sprintf
+				(
+					"About to be created by change %d.",
+					j.about_to_be_created_by
+				)
+			:
+				""
+			),
+			(
+				j.locked_by
+			?
+				sprintf("Locked by change %d.", j.locked_by)
+			:
+				""
+			),
+			(
+				j.about_to_be_copied_by
+			?
+				sprintf
+				(
+					"About to be copied by change %d.",
+					j.about_to_be_copied_by
+				)
+			:
+				""
+			),
+			(
+				j.move != ""
+			?
+				sprintf
+				(
+					"Moved %s %s",
+					(j.action == create ? "from" : "to"),
+					j.move
+				)
+			:
+				""
+			)
+		);
+	}
+}
