@@ -1,21 +1,20 @@
 //
-//      aegis - project change supervisor
-//      Copyright (C) 2004-2006, 2008 Peter Miller
-//      Copyright (C) 2007, 2008 Walter Franzini
+// aegis - project change supervisor
+// Copyright (C) 2004-2006, 2008, 2012 Peter Miller
+// Copyright (C) 2007, 2008 Walter Franzini
 //
-//      This program is free software; you can redistribute it and/or modify
-//      it under the terms of the GNU General Public License as published by
-//      the Free Software Foundation; either version 3 of the License, or
-//      (at your option) any later version.
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 3 of the License, or (at
+// your option) any later version.
 //
-//      This program is distributed in the hope that it will be useful,
-//      but WITHOUT ANY WARRANTY; without even the implied warranty of
-//      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//      GNU General Public License for more details.
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
 //
-//      You should have received a copy of the GNU General Public License
-//      along with this program; if not, see
-//      <http://www.gnu.org/licenses/>.
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, see <http://www.gnu.org/licenses/>.
 //
 
 #include <common/ac/string.h>
@@ -52,9 +51,9 @@ process_tail::process_tail(printer &arg) :
     dir_st.assign("libaegis", libaegis_files);
 
     datadir_files.push_back(
-        "$(RPM_BUILD_ROOT)$(sysconfdir)/profile.d/aegis.sh");
+        "$(DESTDIR)$(sysconfdir)/profile.d/aegis.sh");
     datadir_files.push_back(
-        "$(RPM_BUILD_ROOT)$(sysconfdir)/profile.d/aegis.csh");
+        "$(DESTDIR)$(sysconfdir)/profile.d/aegis.csh");
 }
 
 
@@ -124,6 +123,11 @@ process_tail::per_file(const nstring &filename)
 
     else if (file.starts_with("script/"))
     {
+        if (file.ends_with(".in"))
+        {
+            nstring name = nstring(file.c_str(), file.size() - 3);
+            clean_files.push_back_unique(name);
+        }
         nstring name = file.trim_extension().basename();
         if (name != "aegis.synpic" && name != "ae-symlinks")
         {
@@ -131,7 +135,7 @@ process_tail::per_file(const nstring &filename)
             clean_files.push_back("bin/" + name + "$(EXEEXT)");
             if (!name.starts_with("test_"))
             {
-                nstring install_name = "$(RPM_BUILD_ROOT)$(bindir)/"
+                nstring install_name = "$(DESTDIR)$(bindir)/"
                     "$(PROGRAM_PREFIX)" + name + "$(PROGRAM_SUFFIX)$(EXEEXT)";
                 commands_install.push_back(install_name);
             }
@@ -149,17 +153,13 @@ process_tail::per_file(const nstring &filename)
         &&
             name != "fmtgen"
         &&
-            name != "cklinlen"
-        &&
-            name != "aemanifest"
-        &&
             name != "aemakefile"
         &&
             !name.starts_with("test_")
         )
         {
             commands_install.push_back(
-                "$(RPM_BUILD_ROOT)$(bindir)/$(PROGRAM_PREFIX)" + name +
+                "$(DESTDIR)$(bindir)/$(PROGRAM_PREFIX)" + name +
                 "$(PROGRAM_SUFFIX)$(EXEEXT)");
         }
     }
@@ -204,10 +204,10 @@ process_tail::per_file(const nstring &filename)
             dir_st.assign(dir, dir_p);
         }
         nstring stem(file.c_str(), file.size() - 2);
-        nstring obj(stem + ".gen.$(OBJEXT)");
+        nstring obj(stem + ".yacc.$(OBJEXT)");
         dir_p->push_back(obj);
-        clean_files.push_back(stem + ".gen.cc");
-        clean_files.push_back(stem + ".gen.h");
+        clean_files.push_back(stem + ".yacc.cc");
+        clean_files.push_back(stem + ".yacc.h");
         clean_files.push_back(obj);
     }
     else if (file.starts_with("lib/") && file.ends_with("/libaegis.po"))
@@ -219,7 +219,8 @@ process_tail::per_file(const nstring &filename)
         nstring stem = nstring(file.c_str() + 4, file.size() - 7);
         nstring src("lib/" + stem + ".mo");
         po_files.push_back(src);
-        nstring dst("$(RPM_BUILD_ROOT)$(NLSDIR)/" + stem + ".mo");
+        clean_files.push_back(src);
+        nstring dst("$(DESTDIR)$(NLSDIR)/" + stem + ".mo");
         install_po_files.push_back(dst);
         recursive_mkdir(dirname(src), dirname(dst), "libdir");
     }
@@ -234,35 +235,35 @@ process_tail::per_file(const nstring &filename)
     else if (file.gmatch("lib/icon2/*.uue"))
     {
         nstring stem(file.c_str() + 10, file.size() - 14);
-	nstring tmp = "lib/icon/" + stem;
-        nstring dst = "$(RPM_BUILD_ROOT)$(datadir)/icon/" + stem;
-	datadir_files.push_back(dst);
-	recursive_mkdir(dirname(tmp), dirname(dst), "datadir");
-	clean_files.push_back(tmp);
+        nstring tmp = "lib/icon/" + stem;
+        nstring dst = "$(DESTDIR)$(datadir)/icon/" + stem;
+        datadir_files.push_back(dst);
+        recursive_mkdir(dirname(tmp), dirname(dst), "datadir");
+        clean_files.push_back(tmp);
     }
     else if (file.gmatch("lib/icon/*.uue"))
     {
         nstring stem(file.c_str() + 9, file.size() - 13);
-        nstring dst = "$(RPM_BUILD_ROOT)$(datadir)/icon/" + stem;
-	datadir_files.push_back(dst);
-	recursive_mkdir(dirname(file), dirname(dst), "datadir");
-	clean_files.push_back("lib/icon/" + stem);
+        nstring dst = "$(DESTDIR)$(datadir)/icon/" + stem;
+        datadir_files.push_back(dst);
+        recursive_mkdir(dirname(file), dirname(dst), "datadir");
+        clean_files.push_back("lib/icon/" + stem);
     }
     else if (file.gmatch("lib/*.uue"))
     {
-	// do nothing
+        // do nothing
     }
     else if (file.gmatch("lib/*/man[1-9]/*.[1-9]"))
     {
         nstring stem = nstring(file.c_str() + 4, file.size() - 4);
-        install_doc_files.push_back("$(RPM_BUILD_ROOT)$(datadir)/" + stem);
+        install_doc_files.push_back("$(DESTDIR)$(datadir)/" + stem);
         nstring src(file);
-        nstring dst("$(RPM_BUILD_ROOT)$(datadir)/" + stem);
+        nstring dst("$(DESTDIR)$(datadir)/" + stem);
         recursive_mkdir(dirname(src), dirname(dst), "datadir");
         if (file.gmatch("lib/en/*"))
         {
             nstring part = nstring(file.c_str() + 7, file.size() - 7);
-            man_files.push_back("$(RPM_BUILD_ROOT)$(mandir)/" + part);
+            man_files.push_back("$(DESTDIR)$(mandir)/" + part);
         }
     }
     else if (file.gmatch("lib/*/*/main.*"))
@@ -274,18 +275,18 @@ process_tail::per_file(const nstring &filename)
         clean_files.push_back("lib/" + stem + ".ps");
         clean_files.push_back("lib/" + stem + ".dvi");
         clean_files.push_back("lib/" + stem + ".txt");
-        install_doc_files.push_back("$(RPM_BUILD_ROOT)$(datadir)/" + stem
+        install_doc_files.push_back("$(DESTDIR)$(datadir)/" + stem
             + ".ps");
-        install_doc_files.push_back("$(RPM_BUILD_ROOT)$(datadir)/" + stem
+        install_doc_files.push_back("$(DESTDIR)$(datadir)/" + stem
             + ".txt");
         nstring src("lib/" + stem + ".ps");
-        nstring dst("$(RPM_BUILD_ROOT)$(datadir)/" + stem + ".ps");
+        nstring dst("$(DESTDIR)$(datadir)/" + stem + ".ps");
         recursive_mkdir(dirname(src), dirname(dst), "datadir");
     }
     else if (file.starts_with("lib/"))
     {
         nstring rest(file.c_str() + 4, file.size() - 4);
-        nstring dst("$(RPM_BUILD_ROOT)$(datadir)/" + rest);
+        nstring dst("$(DESTDIR)$(datadir)/" + rest);
         datadir_files.push_back(dst);
         recursive_mkdir(dirname(file), dirname(dst), "datadir");
     }
@@ -344,7 +345,7 @@ process_tail::postlude()
         }
 
         print << "\n";
-        print << "$(RPM_BUILD_ROOT)$(bindir)/$(PROGRAM_PREFIX)" << name
+        print << "$(DESTDIR)$(bindir)/$(PROGRAM_PREFIX)" << name
             << "$(PROGRAM_SUFFIX)$(EXEEXT): bin/" << name
             << "$(EXEEXT) .bindir\n";
         print << "\t$(INSTALL_PROGRAM) bin/" << name << "$(EXEEXT) $@\n";
@@ -353,7 +354,7 @@ process_tail::postlude()
     }
 
     print << "\nCommonFiles = " << *common_files << "\n";
-    print << "\nLibAegisFiles = " << *libaegis_files << " " << *common_files
+    print << "\nlibaegis_obj = " << *libaegis_files << " " << *common_files
         << "\n";
     print << "\nLibFiles = " << libdir_files << "\n";
     print << "\nDataFiles = " << datadir_files << "\n";
@@ -406,29 +407,29 @@ process_tail::postlude()
 
     print << "\n"
         ".bindir:\n"
-        "\t-$(INSTALL) -m 0755 -d $(RPM_BUILD_ROOT)$(bindir)\n"
+        "\t-$(INSTALL) -m 0755 -d $(DESTDIR)$(bindir)\n"
         "\t-@touch $@\n"
         "\t@sleep 1\n"
         "\n"
         ".man1dir:\n"
-        "\t-$(INSTALL) -m 0755 -d $(RPM_BUILD_ROOT)$(mandir)/man1\n"
+        "\t-$(INSTALL) -m 0755 -d $(DESTDIR)$(mandir)/man1\n"
         "\t-@touch $@\n"
         "\t@sleep 1\n"
         "\n"
         ".man3dir:\n"
-        "\t-$(INSTALL) -m 0755 -d $(RPM_BUILD_ROOT)$(mandir)/man3\n"
+        "\t-$(INSTALL) -m 0755 -d $(DESTDIR)$(mandir)/man3\n"
         "\t-@touch $@\n"
         "\t@sleep 1\n"
         "\n"
         ".man5dir:\n"
-        "\t-$(INSTALL) -m 0755 -d $(RPM_BUILD_ROOT)$(mandir)/man5\n"
+        "\t-$(INSTALL) -m 0755 -d $(DESTDIR)$(mandir)/man5\n"
         "\t-@touch $@\n"
         "\t@sleep 1\n"
         "\n"
         ".comdir:\n"
-        "\t-$(INSTALL) -m 0755 -d $(RPM_BUILD_ROOT)$(comdir)\n"
-        "\t-chown $(AEGIS_UID) $(RPM_BUILD_ROOT)$(comdir) && "
-            "chgrp $(AEGIS_GID) $(RPM_BUILD_ROOT)$(comdir)\n"
+        "\t-$(INSTALL) -m 0755 -d $(DESTDIR)$(comdir)\n"
+        "\t-chown $(AEGIS_UID) $(DESTDIR)$(comdir) && "
+            "chgrp $(AEGIS_GID) $(DESTDIR)$(comdir)\n"
         "\t$(SH) etc/compat.2.3\n"
         "\t-@touch $@\n"
         "\t@sleep 1\n"
@@ -441,7 +442,7 @@ process_tail::postlude()
         "\n"
         "distclean: clean\n"
         "\trm -f config.status config.log config.cache\n"
-        "\trm -f Makefile common/config.h etc/Howto.conf\n"
+        "\trm -f Makefile common/config.h etc/howto.conf\n"
         "\trm -f lib/cshrc lib/profile etc/libdir.so\n"
         "\n"
         ".bin:\n"
@@ -453,9 +454,9 @@ process_tail::postlude()
         "\t$(AR) qc $@ $(CommonFiles)\n"
         "\t$(RANLIB) $@\n"
         "\n"
-        "libaegis/libaegis.$(LIBEXT): $(LibAegisFiles)\n"
+        "libaegis/libaegis.$(LIBEXT): $(libaegis_obj)\n"
         "\trm -f $@\n"
-        "\t$(AR) qc $@ $(LibAegisFiles)\n"
+        "\t$(AR) qc $@ $(libaegis_obj)\n"
         "\t$(RANLIB) $@\n"
         "\n"
         "sure: $(TestFiles) etc/test.sh\n"
@@ -488,3 +489,6 @@ process_tail::postlude()
         "uninstall: uninstall-bin uninstall-lib uninstall-po uninstall-man "
             "uninstall-doc\n";
 }
+
+
+// vim: set ts=8 sw=4 et :

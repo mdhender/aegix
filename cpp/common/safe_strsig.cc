@@ -1,6 +1,6 @@
 //
 // aegis - project change supervisor
-// Copyright (C) 2007, 2008 Peter Miller
+// Copyright (C) 2007-2009, 2012 Peter Miller
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 //
 
 #include <common/ac/stdio.h>
+#include <common/ac/stdlib.h>
 #include <common/ac/string.h>
 
 #include <common/safe_strsig.h>
@@ -32,3 +33,6 @@ safe_strsignal(int sig)
     snprintf(buffer, sizeof(buffer), "unknown signal %d", sig);
     return buffer;
 }
+
+
+// vim: set ts=8 sw=4 et :

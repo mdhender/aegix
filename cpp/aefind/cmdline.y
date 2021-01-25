@@ -1,29 +1,28 @@
 /*
- *      aegis - project change supervisor
- *      Copyright (C) 1997-1999, 2001-2008 Peter Miller
- *      Copyright (C) 2007 Walter Franzini
+ * aegis - project change supervisor
+ * Copyright (C) 1997-1999, 2001-2008, 2011, 2012 Peter Miller
+ * Copyright (C) 2007 Walter Franzini
  *
- *      This program is free software; you can redistribute it and/or modify
- *      it under the terms of the GNU General Public License as published by
- *      the Free Software Foundation; either version 3 of the License, or
- *      (at your option) any later version.
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or (at
+ * your option) any later version.
  *
- *      This program is distributed in the hope that it will be useful,
- *      but WITHOUT ANY WARRANTY; without even the implied warranty of
- *      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *      GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
  *
- *      You should have received a copy of the GNU General Public License
- *      along with this program. If not, see
- *      <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 %{
 
+#include <common/ac/assert.h>
 #include <common/ac/stdio.h>
 #include <common/ac/stdlib.h>
 
-#include <common/error.h> // for assert
 #include <common/progname.h>
 #include <common/quit.h>
 #include <common/str_list.h>
@@ -50,6 +49,7 @@
 #include <aefind/function.h>
 #include <aefind/function/execute.h>
 #include <aefind/lex.h>
+#include <aefind/shorthand/delete.h>
 #include <aefind/shorthand/name.h>
 #include <aefind/shorthand/path.h>
 #include <aefind/shorthand/print.h>
@@ -67,6 +67,7 @@
 
 #ifdef DEBUG
 #define YYDEBUG 1
+#define YYERROR_VERBOSE 1
 #endif
 
 %}
@@ -87,6 +88,7 @@
 %token CTIME
 %token CUR_REL
 %token DEBUG_keyword
+%token DELETE
 %token DEVDIR
 %token DIV
 %token EQ
@@ -162,7 +164,7 @@
 %type <lv_tree>     exec_list
 
 %left COMMA
-%left QUESTION COLON
+%right QUESTION COLON
 %left OROR
 %left ANDAND
 %left BIT_OR
@@ -193,6 +195,7 @@ static int      debug;
 static void
 report_error(const rpt_value::pointer &vp)
 {
+    trace(("%s\n", __PRETTY_FUNCTION__));
     const rpt_value_error *rve =
         dynamic_cast<const rpt_value_error *>(vp.get());
     if (!rve)
@@ -208,6 +211,7 @@ static void
 walker(void *, descend_message_ty msg, string_ty *path_unres,
     string_ty *path_maybe, string_ty *path_res, struct stat *st)
 {
+    trace(("%s\n", __PRETTY_FUNCTION__));
     switch (msg)
     {
     case descend_message_file:
@@ -227,13 +231,14 @@ walker(void *, descend_message_ty msg, string_ty *path_unres,
 
 
 static string_list_ty *stack;
-static project_ty *pp;
+static project *pp;
 static change::pointer cp;
 
 
 string_ty *
 stack_relative(string_ty *fn)
 {
+    trace(("%s\n", __PRETTY_FUNCTION__));
     assert(stack);
     os_become_orig();
     string_ty *s1 = os_pathname(fn, 1);
@@ -271,6 +276,7 @@ stack_relative(string_ty *fn)
 string_ty *
 stack_nth(int n)
 {
+    trace(("%s\n", __PRETTY_FUNCTION__));
     assert(n >= 0);
     assert(stack);
     assert(stack->nstrings);
@@ -285,7 +291,8 @@ stack_nth(int n)
 int
 stack_eliminate(string_ty *filename)
 {
-    fstate_src_ty *src = project_file_find(pp, filename, view_path_simple);
+    trace(("%s\n", __PRETTY_FUNCTION__));
+    fstate_src_ty *src = pp->file_find(filename, view_path_simple);
     if (!src)
         return 0;
     switch (src->action)
@@ -308,9 +315,9 @@ stack_eliminate(string_ty *filename)
 void
 cmdline_grammar(int argc, char **argv)
 {
+    trace(("%s\n", __PRETTY_FUNCTION__));
     extern int yyparse(void);
     size_t          j;
-    user_ty::pointer up;
     cstate_ty       *cstate_data;
     int             based;
 
@@ -375,6 +382,7 @@ cmdline_grammar(int argc, char **argv)
     pp->bind_existing();
 
     stack = new string_list_ty();
+    user_ty::pointer up = user_ty::create();
     if (baseline)
     {
         if (change_number)
@@ -390,19 +398,13 @@ cmdline_grammar(int argc, char **argv)
         /*
          * Get the search path from the project.
          */
-        project_search_path_get(pp, stack, 1);
+        pp->search_path_get(stack, true);
 
-        up.reset();
         cp = 0;
         cstate_data = 0;
     }
     else
     {
-        /*
-         * locate user data
-         */
-        up = user_ty::create();
-
         /*
          * locate change data
          */
@@ -417,9 +419,8 @@ cmdline_grammar(int argc, char **argv)
             /*
              * Get the search path from the project.
              */
-            project_search_path_get(pp, stack, 1);
+            pp->search_path_get(stack, true);
 
-            up.reset();
             cp = 0;
             cstate_data = 0;
         }
@@ -436,7 +437,7 @@ cmdline_grammar(int argc, char **argv)
             /*
              * Get the search path from the change.
              */
-            change_search_path_get(cp, stack, 1);
+            cp->search_path_get(stack, true);
         }
     }
 
@@ -447,6 +448,7 @@ cmdline_grammar(int argc, char **argv)
      * 3. if the file is inside the baseline, ok
      * 4. if neither, error
      */
+    assert(up);
     based =
         (
             stack->nstrings >= 1
@@ -514,6 +516,7 @@ cmdline_grammar(int argc, char **argv)
 static tree::pointer
 make_sure_has_side_effects(const tree::pointer &x)
 {
+    trace(("%s\n", __PRETTY_FUNCTION__));
     if (x->useful())
         return x;
 
@@ -644,6 +647,11 @@ tree1
     : PRINT
         {
             tree::pointer tp = shorthand_print();
+            $$ = new tree::pointer(tp);
+        }
+    | DELETE
+        {
+            tree::pointer tp = shorthand_delete();
             $$ = new tree::pointer(tp);
         }
     | EXECUTE exec_list SEMICOLON
@@ -1229,3 +1237,6 @@ number_or_string
             $$ = $1;
         }
     ;
+
+
+// vim: set ts=8 sw=4 et :
