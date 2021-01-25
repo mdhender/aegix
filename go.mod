@@ -1,3 +1,3 @@
-module github.com/mdhender/aegis
+module github.com/mdhender/aegix
 
 go 1.15

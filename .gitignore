@@ -9,5 +9,21 @@
 *.tgz
 
 /.idea
+
+# executables accidentally created in the repository root
+/aefind
+/aefind.exe
+/aefp
+/aefp.exe
 /aegis
 /aegis.exe
+/aereport
+/aereport.exe
+/configure
+/configure.exe
+/cook
+/cook.exe
+/fhist
+/fhist.exe
+/fmtgen
+/fmtgen.exe
