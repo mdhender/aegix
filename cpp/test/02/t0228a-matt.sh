@@ -1,23 +1,23 @@
 #!/bin/sh
 #
-#	aegis - project change supervisor
-#	Copyright (C) 2005 Matthew Lee;
-#	All rights reserved.
-#       Copyright (C) 2007, 2008 Peter Miller
+#       aegis - project change supervisor
+#       Copyright (C) 2005 Matthew Lee;
+#       All rights reserved.
+#       Copyright (C) 2007, 2008, 2012 Peter Miller
 #
-#	This program is free software; you can redistribute it and/or modify
-#	it under the terms of the GNU General Public License as published by
-#	the Free Software Foundation; either version 3 of the License, or
-#	(at your option) any later version.
+#       This program is free software; you can redistribute it and/or modify
+#       it under the terms of the GNU General Public License as published by
+#       the Free Software Foundation; either version 3 of the License, or
+#       (at your option) any later version.
 #
-#	This program is distributed in the hope that it will be useful,
-#	but WITHOUT ANY WARRANTY; without even the implied warranty of
-#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#	GNU General Public License for more details.
+#       This program is distributed in the hope that it will be useful,
+#       but WITHOUT ANY WARRANTY; without even the implied warranty of
+#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#       GNU General Public License for more details.
 #
-#	You should have received a copy of the GNU General Public License
-#	along with this program. If not, see
-#	<http://www.gnu.org/licenses/>.
+#       You should have received a copy of the GNU General Public License
+#       along with this program. If not, see
+#       <http://www.gnu.org/licenses/>.
 #
 
 unset AEGIS_DATADIR
@@ -38,12 +38,12 @@ work=${AEGIS_TMP:-/tmp}/$$
 PAGER=cat
 export PAGER
 AEGIS_FLAGS="delete_file_preference = no_keep; \
-	lock_wait_preference = always; \
-	diff_preference = automatic_merge; \
-	pager_preference = never; \
-	persevere_preference = all; \
-	log_file_preference = never; \
-	default_development_directory = \"$work\";"
+        lock_wait_preference = always; \
+        diff_preference = automatic_merge; \
+        pager_preference = never; \
+        persevere_preference = all; \
+        log_file_preference = never; \
+        default_development_directory = \"$work\";"
 export AEGIS_FLAGS
 AEGIS_THROTTLE=-1
 export AEGIS_THROTTLE
@@ -66,31 +66,31 @@ export PATH
 
 pass()
 {
-	set +x
-	echo PASSED 1>&2
-	cd $here
-	find $work -type d -user $USER -exec chmod u+w {} \;
-	rm -rf $work
-	exit 0
+        set +x
+        echo PASSED 1>&2
+        cd $here
+        find $work -type d -user $USER -exec chmod u+w {} \;
+        rm -rf $work
+        exit 0
 }
 fail()
 {
-	set +x
-	echo "FAILED test of the aeget rssicon functionality ($activity)" 1>&2
-	cd $here
-	find $work -type d -user $USER -exec chmod u+w {} \;
-	rm -rf $work
-	exit 1
+        set +x
+        echo "FAILED test of the aeget rssicon functionality ($activity)" 1>&2
+        cd $here
+        find $work -type d -user $USER -exec chmod u+w {} \;
+        rm -rf $work
+        exit 1
 }
 no_result()
 {
-	set +x
-	echo "NO RESULT when testing the aeget rssicon functionality \
+        set +x
+        echo "NO RESULT when testing the aeget rssicon functionality \
               ($activity)" 1>&2
-	cd $here
-	find $work -type d -user $USER -exec chmod u+w {} \;
-	rm -rf $work
-	exit 2
+        cd $here
+        find $work -type d -user $USER -exec chmod u+w {} \;
+        rm -rf $work
+        exit 2
 }
 trap \"no_result\" 1 2 3 15
 
@@ -135,7 +135,12 @@ activity="build rss.gif"
 $bin/test_base64 -nh -uu -i rss.gif.uue icon/rss.gif
 if test $? -ne 0 ; then fail; fi
 
-echo "Content-Type: image/gif" > rss.expected.gif
+#
+# We need to invoke test_magic here because the behaviour of libmagic
+# change with versions and we need to replicate it exactly to have the
+# test pass.
+#
+echo "Content-Type:" `test_magic icon/rss.gif` > rss.expected.gif
 echo "Content-Length: 360" >> rss.expected.gif
 echo >> rss.expected.gif
 cat icon/rss.gif >> rss.expected.gif
@@ -161,3 +166,6 @@ if test $? -ne 0 ; then cat log; fail; fi
 # no other guarantees are made.
 #
 pass
+
+
+# vim: set ts=8 sw=4 et :

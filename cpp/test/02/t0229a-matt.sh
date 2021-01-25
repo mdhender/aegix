@@ -3,8 +3,8 @@
 #       aegis - project change supervisor
 #       Copyright (C) 2005 Matthew Lee;
 #       All rights reserved.
-#       Copyright (C) 2007, 2008 Peter Miller
-#       Copyright (C) 2007 Walter Franzini
+#       Copyright (C) 2007, 2008, 2012 Peter Miller
+#       Copyright (C) 2007, 2008 Walter Franzini
 #
 #       This program is free software; you can redistribute it and/or modify
 #       it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ check_one()
 
     USERNAME=`aesub '${user name}' -c 10 -p test`
     EMAIL_ADDRESS=`aesub '${user email}' -c 10 -p test | \
-	sed -e 's/</\&lt;/' -e 's/>/\&gt;/'`
+        sed -e 's/</\&lt;/' -e 's/>/\&gt;/'`
     VERSION=`aegis -version | head -1 | awk '{print $3}'`
 
     cat > aeget.served.expected << EOF
@@ -72,7 +72,7 @@ Content-Length: NNN
 EOF
 
     activity="check_one 74"
-    diff -u aeget.served.expected aeget.served.stripped > log 2>&1;
+    diff aeget.served.expected aeget.served.stripped > log 2>&1;
     if test $? -ne 0 ; then cat log; fail ; fi
 }
 
@@ -82,7 +82,7 @@ check_two()
 
     USERNAME=`aesub '${user name}' -c 11 -p test`
     EMAIL_ADDRESS=`aesub '${user email}' -c 11 -p test | \
-	sed -e 's/</\&lt;/' -e 's/>/\&gt;/' `
+        sed -e 's/</\&lt;/' -e 's/>/\&gt;/' `
     VERSION=`aegis -version | head -1 | awk '{print $3}'`
 
     cat > aeget.served.expected << EOF
@@ -112,7 +112,7 @@ Content-Length: NNN
 EOF
 
     activity="check_two 114"
-    diff -u aeget.served.expected aeget.served.stripped > log 2>&1;
+    diff aeget.served.expected aeget.served.stripped > log 2>&1;
     if test $? -ne 0 ; then cat log; fail; fi
 }
 
@@ -122,7 +122,7 @@ check_three()
     strip_served $1 aeget.served.stripped
     USERNAME=`aesub '${user name}' -c 11 -p test`
     EMAIL_ADDRESS=`aesub '${user email}' -c 11 -p test | \
-	sed -e 's/</\&lt;/' -e 's/>/\&gt;/' `
+        sed -e 's/</\&lt;/' -e 's/>/\&gt;/' `
     VERSION=`aegis -version | head -1 | awk '{print $3}'`
 
     cat > aeget.served.expected<<EOF
@@ -168,7 +168,7 @@ Content-Length: NNN
 EOF
 
     activity="check_three 170"
-    diff -u aeget.served.expected aeget.served.stripped > log 2>&1;
+    diff aeget.served.expected aeget.served.stripped > log 2>&1;
     if test $? -ne 0 ; then cat log; fail; fi
 }
 
@@ -263,20 +263,20 @@ project_specific =
       value = "en-AU";
     },
     {
-	name = "rss:feedfilename-completed.xml";
-	value = "completed";
+        name = "rss:feedfilename-completed.xml";
+        value = "completed";
     },
     {
       name = "rss:feedtitle-completed.xml";
       value = "Titolo del canale di test";
     },
     {
-	name = "rss:feeddescription-completed.xml";
-	value = "Descrizione del canale dei change set completi";
+        name = "rss:feeddescription-completed.xml";
+        value = "Descrizione del canale dei change set completi";
     },
     {
-	name = "rss:feedlanguage-completed.xml";
-	value = "it";
+        name = "rss:feedlanguage-completed.xml";
+        value = "it";
     },
 ];
 fubar
@@ -373,3 +373,4 @@ check_three aeget.served
 # no other guarantees are made.
 #
 pass
+# vim: set ts=8 sw=4 et :
